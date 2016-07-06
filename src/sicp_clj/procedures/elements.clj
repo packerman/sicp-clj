@@ -21,6 +21,12 @@
 (defn abs3 [x]
   (if (neg? x) (- x) x))
 
+(defn sum-of-larger-squares [x y z]
+  (cond
+    (and (<= x y) (<= x z)) (sum-of-squares y z)
+    (and (<= y x) (<= y z)) (sum-of-squares x z)
+    (and (<= z x) (<= z y)) (sum-of-squares x y)))
+
 (defn average [x y]
   (/ (+ x y) 2))
 
@@ -46,6 +52,17 @@
               (recur (improve guess))))]
     (sqrt-iter 1.0)))
 
-(defn sqrt-error [x sqrt-fn]
-  (let [s (sqrt-fn x)]
-    (abs (- (square s) x))))
+(defn cube [x] (* x x x))
+
+(defn cbrt [x]
+  (letfn [(good-enough? [guess]
+            (< (abs (- (cube guess) x)) 0.001))
+          (improve [guess]
+            (/ (+ (/ x (square guess))
+                  (* 2 guess))
+               3))
+          (cbrt-iter [guess]
+            (if (good-enough? guess)
+              guess
+              (recur (improve guess))))]
+    (cbrt-iter 1.0)))
