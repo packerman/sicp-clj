@@ -1,6 +1,6 @@
 (ns sicp-clj.procedures.elements)
 
-(defn square [x] (* x x))
+(defn square [x] (*' x x))
 
 (defn sum-of-squares [x y]
   (+ (square x) (square y)))

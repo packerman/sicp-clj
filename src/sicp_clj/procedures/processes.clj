@@ -1,5 +1,5 @@
 (ns sicp-clj.procedures.processes
-  (:require [sicp-clj.procedures.elements :refer [cube abs]]))
+  (:require [sicp-clj.procedures.elements :refer [square cube abs]]))
 
 (defn factorial-rec [n]
   (if (= n 1)
@@ -69,3 +69,18 @@
       (>= (abs angle) double-pi) (sine (rem angle double-pi))
       (>= (abs angle) 0.1) (p (sine (/ angle 3.0)))
       :else angle)))
+
+(defn fast-expt-rec [b n]
+  (cond
+    (zero? n) 1
+    (even? n) (square (fast-expt-rec b (/ n 2)))
+    :else (*' b (fast-expt-rec b (dec n)))))
+
+(defn fast-expt [b n]
+  (letfn [(fast-expt-iter [a b n]
+            (cond
+              (zero? n) a
+              (even? n) (recur a (square b) (/ n 2))
+              :else (recur (*' a b) b (dec n))))]
+    (fast-expt-iter 1 b n)))
+
