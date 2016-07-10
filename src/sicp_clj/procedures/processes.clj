@@ -84,3 +84,55 @@
               :else (recur (*' a b) b (dec n))))]
     (fast-expt-iter 1 b n)))
 
+(defn fast-mult [a b]
+  (letfn [(dbl [x] (*' 2 x))
+          (hlv [x] (/ x 2))
+          (fast-mult-iter [r x y]
+            (cond
+              (zero? x) r
+              (even? x) (recur r (hlv x) (dbl y))
+              :else (recur (+' r y) (dec x) y)))]
+    (fast-mult-iter 0 a b)))
+
+(defn gcd [a b]
+  (if (zero? b)
+    a
+    (recur b (rem a b))))
+
+(defn divides? [a b]
+  (zero? (rem b a)))
+
+(defn prime? [n]
+  (letfn [(smallest-divisor [n]
+            (find-divisor n 2))
+          (next [k]
+            (if (= k 2)
+              3
+              (+ k 2)))
+          (find-divisor [n k]
+            (cond
+              (> (square k) n) n
+              (divides? k n) k
+              :else (recur n (next k))))]
+    (= n (smallest-divisor n))))
+
+(defn expmod [base exp m]
+  (letfn [(expmod-iter [a b n]
+            (cond
+              (zero? n) a
+              (even? n) (recur a (rem (square b) m) (/ n 2))
+              :else (recur (rem (*' a b) m) b (dec n))))]
+    (expmod-iter 1 base exp)))
+
+(defn fermat-test [n]
+  (letfn [(try-it [a]
+            (= (expmod a n n) a))]
+    (try-it (inc (rand-int (dec n))))))
+
+(defn fast-prime? [n times]
+  (cond
+    (zero? times) true
+    (fermat-test n) (recur n (dec times))
+    :else false))
+
+;TODO Exercise 1.28 (Miller-Rabin test)
