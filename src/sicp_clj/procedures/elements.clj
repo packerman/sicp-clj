@@ -52,7 +52,7 @@
               (recur (improve guess))))]
     (sqrt-iter 1.0)))
 
-(defn cube [x] (* x x x))
+(defn cube [x] (*' x x x))
 
 (defn cbrt [x]
   (letfn [(good-enough? [guess]
