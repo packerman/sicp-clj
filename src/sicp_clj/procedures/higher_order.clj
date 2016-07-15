@@ -26,4 +26,13 @@
     (* (sum f (+ a (/ dx 2.0)) add-dx b)
        dx)))
 
-;TODO Exercise 1.29
+(defn simpson [f a b n]
+  {:pre [(even? n) (pos? n) (<= a b)]}
+  (let [h (/ (- b a) n)
+        coeff (fn [k] (cond
+                        (or (= k 0) (= k n)) 1
+                        (even? k) 2
+                        :else 4))]
+    (* h (/ 3.0) (sum (fn [k] (* (coeff k)
+                       (f (+ a (* h k)))))
+            0 inc n))))
