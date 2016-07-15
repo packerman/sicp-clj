@@ -28,7 +28,7 @@
     (and (<= z x) (<= z y)) (sum-of-squares x y)))
 
 (defn average [x y]
-  (/ (+ x y) 2))
+  (/ (+' x y) 2))
 
 (defn sqrt [x]
   (letfn [(good-enough? [guess]

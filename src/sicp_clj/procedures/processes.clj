@@ -103,18 +103,17 @@
   (zero? (rem b a)))
 
 (defn prime? [n]
-  (letfn [(smallest-divisor [n]
-            (find-divisor n 2))
-          (next [k]
+  (letfn [(next [k]
             (if (= k 2)
               3
               (+ k 2)))
-          (find-divisor [n k]
+          (find-divisor [k]
             (cond
               (> (square k) n) n
               (divides? k n) k
-              :else (recur n (next k))))]
-    (= n (smallest-divisor n))))
+              :else (recur (next k))))]
+    (and (>= n 2)
+         (= n (find-divisor 2)))))
 
 (defn expmod [base exp m]
   (letfn [(expmod-iter [a b n]
