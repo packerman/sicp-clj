@@ -118,3 +118,42 @@
                   next
                   (recur next))))]
     (next-try first-guess)))
+
+(defn fp-sqrt [x]
+  (fixed-point
+    (fn [y] (average y (/ x y)))
+    1.0))
+
+(defn golden-ratio []
+  (fixed-point
+    (fn [x] (+ 1 (/ 1 x)))
+    1.0))
+
+(defn log [x] (Math/log x))
+
+(defn x-to-x-eq-1000 []
+  (fixed-point
+    (fn [x] (/ (log 1000) (log x)))
+    2.0))
+
+;TODO Exercise 1.36
+
+(defn cont-frac [n d k]
+  (letfn [(iter [a i]
+            (if (zero? i)
+              a
+              (recur (/ (n i) (+ (d i) a)) (dec i))))]
+    (iter 0 k)))
+
+(defn e-approx [n]
+  (+ 2
+     (cont-frac
+       (fn [i] 1.0)
+       (fn [i]
+         (cond
+           (= i 1) 1.0
+           (= (rem i 3) 2) (+ 2.0 (* 2 (quot i 3)))
+           :else 1.0))
+       n)))
+
+;TODO Exercise 1.39
