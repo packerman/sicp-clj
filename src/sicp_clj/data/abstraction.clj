@@ -61,3 +61,5 @@
 
 (defn area-rectangle [rectangle]
   (* (width-rectangle rectangle) (height-rectangle rectangle)))
+
+;TODO 2.1.4 Extended Exercise: Interval Arithmetic
