@@ -1,5 +1,6 @@
 (ns sicp-clj.data.abstraction
-  (:require [sicp-clj.procedures.processes :refer [gcd]]))
+  (:require [sicp-clj.procedures.processes :refer [gcd]]
+            [sicp-clj.procedures.elements :refer [average abs]]))
 
 (defn make-rat [n d]
   (if (neg? d)
@@ -29,3 +30,34 @@
 
 (defn print-rat [{:keys [numer denom]}]
   (println (str numer "/" denom)))
+
+(defn make-segment [start-point end-point]
+  {:start start-point :end end-point})
+
+(defn make-point [x y]
+  {:x x :y y})
+
+(defn print-point [{:keys [x y]}]
+  (println (str "(" x ", " y ")")))
+
+(defn midpoint-segment [{:keys [start end]}]
+  (let [{x1 :x y1 :y} start
+        {x2 :x y2 :y} end]
+    (make-point (average x1 x2)
+                (average y1 y2))))
+
+(defn make-rectangle [left-bottom-point right-top-point]
+  {:left-bottom left-bottom-point
+   :right-top right-top-point})
+
+(defn width-rectangle [{{left-bottom-x :x} :left-bottom {right-top-x :x} :right-top}]
+  (abs (- right-top-x left-bottom-x)))
+
+(defn height-rectangle [{{left-bottom-y :y} :left-bottom {right-top-y :y} :right-top}]
+  (abs (- right-top-y left-bottom-y)))
+
+(defn perimeter-rectagle [rectangle]
+  (+ (* 2 (width-rectangle rectangle)) (* 2 (height-rectangle rectangle))))
+
+(defn area-rectangle [rectangle]
+  (* (width-rectangle rectangle) (height-rectangle rectangle)))
