@@ -95,9 +95,10 @@
     (fast-mult-iter 0 a b)))
 
 (defn gcd [a b]
-  (if (zero? b)
-    a
-    (recur b (rem a b))))
+  (cond
+    (neg? a) (gcd (- a) b)
+    (zero? b) a
+    :else (recur b (rem a b))))
 
 (defn divides? [a b]
   (zero? (rem b a)))
