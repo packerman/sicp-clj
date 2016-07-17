@@ -63,3 +63,16 @@
   (* (width-rectangle rectangle) (height-rectangle rectangle)))
 
 ;TODO 2.1.4 Extended Exercise: Interval Arithmetic
+
+(defn list-ref [items n]
+  (let [[x & xs] items]
+    (if (zero? n)
+      x
+      (recur xs (dec n)))))
+
+(defn list-length [items]
+  (if (empty? items)
+    0
+    (inc (list-length (next items)))))
+
+
