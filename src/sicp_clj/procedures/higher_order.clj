@@ -113,10 +113,10 @@
         close-enough? (fn [v1 v2]
                         (< (abs (- v1 v2)) tolerance))
         next-try (fn [guess]
-              (let [next (f guess)]
-                (if (close-enough? guess next)
-                  next
-                  (recur next))))]
+                   (let [next (f guess)]
+                     (if (close-enough? guess next)
+                       next
+                       (recur next))))]
     (next-try first-guess)))
 
 (defn fp-sqrt [x]
@@ -157,3 +157,78 @@
        n)))
 
 ;TODO Exercise 1.39
+
+(defn average-damp [f]
+  (fn [x]
+    (average x (f x))))
+
+(defn fp-sqrt2 [x]
+  (fixed-point
+    (average-damp
+      (fn [y] (/ x y)))
+    1.0))
+
+(defn cube-root [x]
+  (fixed-point
+    (average-damp
+      (fn [y]
+        (/ x (square y))))
+    1.0))
+
+(defn deriv [g]
+  (let [dx 0.00001]
+    (fn [x]
+      (/ (- (g (+ x dx)) (g x))
+         dx))))
+
+(defn newton-transform [g]
+  (fn [x]
+    (- x (/ (g x)
+            ((deriv g) x)))))
+
+(defn newtons-method [g guess]
+  (fixed-point (newton-transform g)
+               guess))
+
+(defn newton-sqrt [x]
+  (newtons-method
+    (fn [y]
+      (- (square y) x))
+    1.0))
+
+(defn fixed-point-of-transform [g transform guess]
+  (fixed-point (transform g) guess))
+
+(defn sqrt2 [x]
+  (fixed-point-of-transform
+    (fn [y] (/ x y))
+    average-damp
+    1.0))
+
+(defn sqrt3 [x]
+  (fixed-point-of-transform
+    (fn [y] (- (square y) x))
+    newton-transform
+    1.0))
+
+(defn cubic [a b c]
+  (fn [x]
+    (+ (cube x)
+       (* a (square x))
+       (* b x)
+       c)))
+
+(defn compose [f g]
+  (fn [x]
+    (f (g x))))
+
+(defn repeated [f n]
+  (letfn [(iter [k g]
+            (if (zero? k)
+              g
+              (recur (dec k) (compose f g))))]
+    (iter n identity)))
+
+;TODO Exercise 1.44 (smooth)
+;TODO Exercise 1.45 (n-th roots)
+;TODO Exercise 1.46 (iterative improvement)
