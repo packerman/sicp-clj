@@ -8,8 +8,9 @@ FIXME
 
 # Reload REPL
  
- ```clojure
+ ```
  (require '[clojure.tools.namespace.repl :refer [refresh]])
+ 
  (refresh)
  ```
  

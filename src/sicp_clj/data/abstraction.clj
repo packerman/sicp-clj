@@ -75,4 +75,23 @@
     0
     (inc (list-length (next items)))))
 
+(defn append [list1 list2]
+  (if (empty? list1)
+    list2
+    (cons (first list1)
+          (append (next list1) list2))))
 
+(defn my-last [lst]
+  (when (seq lst)
+    (let [[x & xs] lst]
+      (if (empty? xs)
+        x
+        (recur xs)))))
+
+(defn my-reverse [lst]
+  (letfn [(iter [rev lst]
+            (if (empty? lst)
+              rev
+              (let [[x & xs] lst]
+                (recur (cons x rev) xs))))]
+    (iter '() lst)))
