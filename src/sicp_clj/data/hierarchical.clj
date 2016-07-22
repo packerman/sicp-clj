@@ -1,6 +1,7 @@
 (ns sicp-clj.data.hierarchical
   (:require [clojure.test :refer :all]
-            [sicp-clj.procedures.elements :refer [square]]))
+            [sicp-clj.procedures.elements :refer [square]]
+            [sicp-clj.procedures.processes :refer [prime?]]))
 
 (defn list-ref [items n]
   (let [[x & xs] items]
@@ -94,3 +95,92 @@
 
 ;TODO Exercise 2.32
 
+(defn accumulate [op initial sequence]
+  (if-let [[x & xs] sequence]
+    (op x
+        (accumulate op initial xs))
+    initial))
+
+(deftest accumulate-test
+  (is (= 15 (accumulate + 0 [1 2 3 4 5])))
+  (is (= 120 (accumulate * 1 [1 2 3 4 5])))
+  (is (= '(1 2 3 4 5) (accumulate cons nil [1 2 3 4 5]))))
+
+(defn reduce-n [op init seqs]
+  (apply map
+    (fn [& s]
+      (reduce op init s))
+    seqs))
+
+(deftest reduce-n-test
+  (is (= '(22 26 30)
+         (reduce-n + 0
+                   '((1 2 3)
+                      (4 5 6)
+                      (7 8 9)
+                      (10 11 12))))))
+
+(defn horner-eval [x coeffs]
+  (accumulate
+    (fn [coeff value]
+      (+ coeff (* x value)))
+    0
+    coeffs))
+
+(deftest horner-eval-test
+  (is (= 79 (horner-eval 2 [1 3 0 5 0 1]))))
+
+(defn dot-product [v w]
+  (reduce + (map * v w)))
+
+(defn matrix-*-vector [m v]
+  (map (fn [row]
+         (dot-product row v)) m))
+
+(defn transpose [m]
+  (reduce-n conj [] m))
+
+(defn matrix-*-matrix [m n]
+  (let [cols (transpose n)]
+    (map
+      #(matrix-*-vector cols %)
+      m)))
+
+(deftest matrix-operations
+  (testing "dot product"
+    (is (= 3 (dot-product [1 3 -5] [4 -2 -1]))))
+  (testing "matrix vector multiplication"
+    (is (= [1 -3]
+           (matrix-*-vector [[1 -1 2]
+                             [0 -3 1]]
+                            [2 1 0]))))
+  (testing "matrix matrix multiplication"
+    (is (= [[0 -10]
+            [-3 -1]]
+           (matrix-*-matrix [[0 4 -2]
+                             [-4 -3 0]]
+                            [[0 1]
+                             [1 -1]
+                             [2 3]]))))
+  (testing "transpose matrix"
+    (is (= [[1 3 5]
+            [2 4 6]]
+           (transpose [[1 2]
+                       [3 4]
+                       [5 6]])))))
+
+(defn prime-sum-pairs [n]
+  (->>
+    (for [i (range 1 (inc n)) j (range 1 i)]
+      [i j (+ i j)])
+    (filter (fn [[_ _ s]] (prime? s)))))
+
+(deftest prime-sum-pairs-test
+  (is (= (list [2 1 3]
+               [3 2 5]
+               [4 1 5]
+               [4 3 7]
+               [5 2 7]
+               [6 1 7]
+               [6 5 11])
+         (prime-sum-pairs 6))))

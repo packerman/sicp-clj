@@ -8,17 +8,28 @@ FIXME
 
 # Reload REPL
  
- ```
+```
  (require '[clojure.tools.namespace.repl :refer [refresh]])
  
  (refresh)
- ```
+```
  
  In case of errors
  
- ```clojure
+```
  (clojure.repl/pst)
 ```
+
+#Run tests
+
+```
+ (require '[clojure.test :refer [run-tests]])
+```
+
+```
+ (run-tests 'NAMESPACE)
+```
+
 
 ## License
 
