@@ -108,9 +108,9 @@
 
 (defn reduce-n [op init seqs]
   (apply map
-    (fn [& s]
-      (reduce op init s))
-    seqs))
+         (fn [& s]
+           (reduce op init s))
+         seqs))
 
 (deftest reduce-n-test
   (is (= '(22 26 30)
@@ -170,10 +170,10 @@
                        [5 6]])))))
 
 (defn prime-sum-pairs [n]
-  (->>
-    (for [i (range 1 (inc n)) j (range 1 i)]
-      [i j (+ i j)])
-    (filter (fn [[_ _ s]] (prime? s)))))
+  (for [i (range 1 (inc n)) j (range 1 i)
+        :let [s (+ i j)]
+        :when (prime? s)]
+    [i j s]))
 
 (deftest prime-sum-pairs-test
   (is (= (list [2 1 3]
@@ -184,3 +184,32 @@
                [6 1 7]
                [6 5 11])
          (prime-sum-pairs 6))))
+
+(defn triples-sum-to [n s]
+  (for [i (range 1 (inc n))
+        j (range 1 i)
+        k (range 1 j)
+        :when (= s (+ i j k))]
+    [i j k]))
+
+(defn queens [n]
+  (letfn [(new-positions [k]
+            (for [i (range 1 (inc n))]
+              [k i]))
+          (check? [[i j] [x y]]
+            (or (= i x) (= j y)
+                (= (- i x) (- j y))
+                (= (- i x) (- y j))))
+          (safe? [new-pos positions]
+            (every?
+              (fn [pos]
+                (not (check? pos new-pos)))
+              positions))
+          (step [solutions k]
+            (for [solution solutions
+                  pos (new-positions k)
+                  :when (safe? pos solution)]
+              (conj solution pos)))]
+    (reduce step
+            (list [])
+            (range 1 (inc n)))))
