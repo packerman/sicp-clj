@@ -1,17 +1,5 @@
-(ns sicp-clj.data.symbolic
-  (:require [sicp-clj.core :refer :all]
-            [clojure.test :refer :all]))
-
-(defn memq [item s]
-  (if-let [[x & xs] s]
-    (if (= item x)
-      s
-      (recur item xs))
-    false))
-
-(deftest memq-test
-  (is (false? (memq 'apple '(pear banana prue))))
-  (is (= '(apple pear) (memq 'apple '(x (apple sauce) y apple pear)))))
+(ns sicp-clj.data.symbolic.deriv
+  (:require [sicp-clj.core :refer :all]))
 
 (defn make-sum [a1 a2]
   (cond
@@ -42,8 +30,8 @@
             (condp = op
               '+ (make-sum (deriv arg1 var) (deriv arg2 var))
               '* (make-sum
-                       (make-product arg1 (deriv arg2 var))
-                       (make-product (deriv arg1 var) arg2))
+                   (make-product arg1 (deriv arg2 var))
+                   (make-product (deriv arg1 var) arg2))
               '** (make-product arg2
                                 (make-product
                                   (make-exponentiation arg1 (- arg2 1))
@@ -52,3 +40,4 @@
 
 ;TODO Exercise 2.57
 ;TODO Exercise 2.58
+
