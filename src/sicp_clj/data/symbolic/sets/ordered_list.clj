@@ -31,14 +31,15 @@
 (defn union-set [set1 set2]
   (let [s (seq set1) t (seq set2)]
     (cond
-      (not s) set2
-      (not t) set1
-      :else (let [[x & xs] set1
-                  [y & ys] set2]
+      (not (or s t)) '()
+      (not s) t
+      (not t) s
+      :else (let [[x & xs] s
+                  [y & ys] t]
               (cond
                 (= x y) (conj (union-set xs ys) x)
-                (< x y) (conj (union-set xs set2) x)
-                (> x y) (conj (union-set set1 ys) y))))))
+                (< x y) (conj (union-set xs t) x)
+                (> x y) (conj (union-set s ys) y))))))
 
 (deftest set-operations
   (testing "element of set?"
