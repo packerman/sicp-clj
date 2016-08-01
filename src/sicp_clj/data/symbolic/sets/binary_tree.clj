@@ -1,8 +1,6 @@
 (ns sicp-clj.data.symbolic.sets.binary-tree
   (:require [clojure.test :refer :all]))
 
-;TODO implement
-
 (defn make-tree [entry left right]
   (list entry left right))
 
