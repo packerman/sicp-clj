@@ -65,10 +65,10 @@
             (if (leaf? branch)
               bits
               (let [{:keys [left right]} branch]
-                (cond
-                  (contains? (symbols left) symbol) (recur symbol left (conj bits 0))
-                  (contains? (symbols right) symbol) (recur symbol right (conj bits 1))
-                  :else (error "Unkown symbol: " symbol)))))]
+                (condp contains? symbol
+                  (symbols left) (recur symbol left (conj bits 0))
+                  (symbols right) (recur symbol right (conj bits 1))
+                  :else (error "unkown symbol: " symbol)))))]
     (mapcat
       encode-symbol
       message)))
