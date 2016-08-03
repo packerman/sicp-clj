@@ -16,7 +16,7 @@
               0 (:left branch)
               1 (:right branch)
               (error "bad bit: " bit)))
-          (decode-1 [{:keys [decoded branch tree] :as state} bit]
+          (decode-1 [{:keys [branch] :as state} bit]
             (let [next-branch (choose-branch bit branch)]
               (if (leaf? next-branch)
                 (-> state
@@ -27,8 +27,7 @@
       (reduce
         decode-1
         {:decoded []
-         :branch  tree
-         :tree    tree}
+         :branch  tree}
         bits))))
 
 (defn make-leaf [symbol weight]
@@ -60,19 +59,31 @@
     pairs))
 
 (defn encode [message tree]
-  (letfn [(encode-symbol [symbol])]
+  (letfn [(encode-symbol [symbol]
+            (encode-1 symbol tree []))
+          (encode-1 [symbol branch bits]
+            (if (leaf? branch)
+              bits
+              (let [{:keys [left right]} branch]
+                (cond
+                  (contains? (symbols left) symbol) (recur symbol left (conj bits 0))
+                  (contains? (symbols right) symbol) (recur symbol right (conj bits 1))
+                  :else (error "Unkown symbol: " symbol)))))]
     (mapcat
       encode-symbol
       message)))
 
 (deftest huffman
-  (testing "decode"
-    (let [sample-tree (make-tree
-                        (make-leaf 'A 4)
+  (let [sample-tree (make-tree
+                      (make-leaf 'A 4)
+                      (make-tree
+                        (make-leaf 'B 2)
                         (make-tree
-                          (make-leaf 'B 2)
-                          (make-tree
-                            (make-leaf 'C 1)
-                            (make-leaf 'D 1))))
-          test-message [0 1 1 0 0 1 0 1 0 1 1 1 0]]
-      (is (= '[A C A B B D A] (decode test-message sample-tree))))))
+                          (make-leaf 'C 1)
+                          (make-leaf 'D 1))))
+        test-bits [0 1 1 0 0 1 0 1 0 1 1 1 0]
+        test-message '[A C A B B D A]]
+    (testing "decode"
+      (is (= test-message (decode test-bits sample-tree))))
+    (testing "encode"
+      (is (= test-bits (encode test-message sample-tree))))))
