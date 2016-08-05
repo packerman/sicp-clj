@@ -1,4 +1,4 @@
-(ns sicp-clj.data.complex-numbers
+(ns sicp-clj.data.complex-numbers.tagged
   (:require [clojure.test :refer :all]))
 
 
@@ -105,3 +105,6 @@
     (is (almost-equal? tolerance
                        (->Rectangular 5 5)
                        (mul-complex (->Rectangular 2 1) (->Rectangular 3 1))))))
+
+;TODO Exercise 2.73
+;TODO Exercise 2.74
