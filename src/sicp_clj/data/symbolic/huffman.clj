@@ -53,10 +53,13 @@
     (list e)))
 
 (defn make-leaf-set [pairs]
-  (reduce
-    #(adjoin-set %2 %1)
-    '()
-    pairs))
+  (->> pairs
+       (map
+         (fn [[symbol weight]]
+           (make-leaf symbol weight)))
+       (reduce
+         #(adjoin-set %2 %1)
+         '())))
 
 (defn encode [message tree]
   (letfn [(encode-symbol [symbol]
@@ -68,10 +71,21 @@
                 (condp contains? symbol
                   (symbols left) (recur symbol left (conj bits 0))
                   (symbols right) (recur symbol right (conj bits 1))
-                  :else (error "unkown symbol: " symbol)))))]
+                  (error "unknown symbol: " symbol)))))]
     (mapcat
       encode-symbol
       message)))
+
+(defn generate-huffman-tree [freqs]
+  (letfn [(successive-merge [nodes]
+            (if (= 1 (count nodes))
+              (first nodes)
+              (let [[node-1 node-2 & nodes-rest] nodes]
+                (recur
+                  (adjoin-set (make-tree node-1 node-2)
+                              nodes-rest)))))]
+    (successive-merge
+      (make-leaf-set freqs))))
 
 (deftest huffman
   (let [sample-tree (make-tree
@@ -86,4 +100,11 @@
     (testing "decode"
       (is (= test-message (decode test-bits sample-tree))))
     (testing "encode"
-      (is (= test-bits (encode test-message sample-tree))))))
+      (is (= test-bits (encode test-message sample-tree))))
+    (testing "compression"
+      (let [message (seq "BACADAEAFABBAAAGAH")
+            tree (generate-huffman-tree
+                   (frequencies message))
+            bits (encode message tree)]
+        (is (= 42 (count bits)))
+        (is (= message (decode bits tree)))))))
