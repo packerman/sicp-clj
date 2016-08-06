@@ -3,7 +3,8 @@
             [sicp-clj.data.abstraction :refer [add-rat sub-rat mul-rat div-rat make-rat]]
             [sicp-clj.data.complex-numbers.message-passing :refer [add-complex sub-complex mul-complex div-complex
                                                                    ->Rectangular equal-complex?]])
-  (:import (sicp_clj.data.complex_numbers.message_passing Complex)))
+  (:import [sicp_clj.data.complex_numbers.message_passing Complex]
+           [clojure.lang BigInt]))
 
 (defn- double-type-dispatch [a b]
   [(type a) (type b)])
@@ -13,9 +14,11 @@
 (defmulti mul double-type-dispatch)
 (defmulti div double-type-dispatch)
 
-
-(derive Long ::ClojureNumber)
-(derive Double ::ClojureNumber)
+(derive Long ::Integer)
+(derive BigInt ::Integer)
+(derive Double ::Float)
+(derive ::Integer ::ClojureNumber)
+(derive ::Float ::ClojureNumber)
 
 (defmethod add [::ClojureNumber ::ClojureNumber] [a b]
   (+' a b))
@@ -29,8 +32,20 @@
 (defmethod div [::ClojureNumber ::ClojureNumber] [a b]
   (/ a b))
 
+(defn- add-type
+      ([type isa]
+        (when isa
+          (derive type isa))
+        (prefer-method add [::ClojureNumber ::ClojureNumber] [type type])
+        (prefer-method sub [::ClojureNumber ::ClojureNumber] [type type])
+        (prefer-method mul [::ClojureNumber ::ClojureNumber] [type type])
+        (prefer-method div [::ClojureNumber ::ClojureNumber] [type type]))
+      ([type] (add-type type nil)))
+
 
 (alias 'rat 'sicp-clj.data.abstraction)
+
+(derive ::Integer ::rat/Rational)
 
 (defmethod add [::rat/Rational ::rat/Rational] [a b]
   (add-rat a b))
@@ -44,17 +59,24 @@
 (defmethod div [::rat/Rational ::rat/Rational] [a b]
   (div-rat a b))
 
+(add-type ::rat/Rational ::Float)
 
-(defmethod add [Complex Complex] [a b]
+(derive Complex ::Complex)
+
+(derive ::Float ::Complex)
+
+(add-type ::Complex)
+
+(defmethod add [::Complex ::Complex] [a b]
   (add-complex a b))
 
-(defmethod sub [Complex Complex] [a b]
+(defmethod sub [::Complex ::Complex] [a b]
   (sub-complex a b))
 
-(defmethod mul [Complex Complex] [a b]
+(defmethod mul [::Complex ::Complex] [a b]
   (mul-complex a b))
 
-(defmethod div [Complex Complex] [a b]
+(defmethod div [::Complex ::Complex] [a b]
   (div-complex a b))
 
 
@@ -93,10 +115,16 @@
     (is (equal-complex? tolerance (->Rectangular 1.2 -0.6)
                         (div (->Rectangular 3 0) (->Rectangular 2 1))))))
 
+(deftest combining-types
+  (let [tolerance 1e-10]
+    (is (equal-complex? tolerance (->Rectangular 5.4 2)
+                        (add 2.4 (->Rectangular 3 2))))))
+
 (deftest arithmetic
   (primitive-numbers)
   (rational-numbers)
-  (complex-numbers))
+  (complex-numbers)
+  (combining-types))
 
 (defn test-ns-hook []
   (arithmetic))
