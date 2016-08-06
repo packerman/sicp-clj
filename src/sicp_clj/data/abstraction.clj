@@ -6,6 +6,7 @@
   (if (neg? d)
     (recur (- n) (- d))
     (let [g (gcd n d)]
+      ^{:type ::Rational}
       {:numer (/ n g)
        :denom (/ d g)})))
 

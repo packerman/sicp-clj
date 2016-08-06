@@ -95,7 +95,7 @@
 
 
 (deftest complex-operations
-  (let [tolerance 1e10
+  (let [tolerance 1e-10
         i (->Rectangular 0 1)
         real (fn [x] (->Rectangular x 0))]
     (is (almost-equal? tolerance

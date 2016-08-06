@@ -44,7 +44,7 @@
     (- (angle z1) (angle z2))))
 
 
-(defn almost-equal? [tolerance z1 z2]
+(defn equal-complex? [tolerance z1 z2]
   (> tolerance (magnitude (sub-complex z1 z2))))
 
 
@@ -52,10 +52,10 @@
   (let [tolerance 1e10
         i (->Rectangular 0 1)
         real (fn [x] (->Rectangular x 0))]
-    (is (almost-equal? tolerance
-                       (real -1) (mul-complex i i)))
-    (is (almost-equal? tolerance
-                       (->Rectangular 5 3) (add-complex (real 5) (mul-complex (real 3) i))))
-    (is (almost-equal? tolerance
-                       (->Rectangular 5 5)
-                       (mul-complex (->Rectangular 2 1) (->Rectangular 3 1))))))
+    (is (equal-complex? tolerance
+                        (real -1) (mul-complex i i)))
+    (is (equal-complex? tolerance
+                        (->Rectangular 5 3) (add-complex (real 5) (mul-complex (real 3) i))))
+    (is (equal-complex? tolerance
+                        (->Rectangular 5 5)
+                        (mul-complex (->Rectangular 2 1) (->Rectangular 3 1))))))
