@@ -30,7 +30,7 @@
        (~div a# b#))
      (defmethod raise ~type [a#]
        (~raise a#))
-     (defmethod generic-type ~type [a#]
+     (defmethod generic-type ~type [_#]
        ~type)))
 
 (install-type ::Integer
