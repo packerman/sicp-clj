@@ -69,15 +69,13 @@
     ([] on-empty)
     ([a] a)
     ([a b]
-     (if (= (type a) (type b))
-       (op a b)
-       (let [ta (generic-type a)
-             tb (generic-type b)]
-         (cond
-           (isa? ta tb) (recur (raise a) b)
-           (isa? tb ta) (recur a (raise b))
-           :else (error "Cannot op " a " and " b " with types " ta " and " tb))
-         )))
+     (let [ta (generic-type a)
+           tb (generic-type b)]
+       (cond
+         (= ta tb) (op a b)
+         (isa? ta tb) (recur (raise a) b)
+         (isa? tb ta) (recur a (raise b))
+         :else (error "Cannot op " a " and " b " with types " ta " and " tb))))
     ([a b & more] (reduce gen (gen a b) more))))
 
 (def add (make-generic add-2 0))
