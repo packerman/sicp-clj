@@ -1,4 +1,5 @@
 (ns sicp-clj.data.abstraction
+  (:refer-clojure :exclude [rational?])
   (:require [sicp-clj.procedures.processes :refer [gcd]]
             [sicp-clj.procedures.elements :refer [average abs]]))
 
@@ -10,21 +11,32 @@
       {:numer (/ n g)
        :denom (/ d g)})))
 
-(defn add-rat [{n1 :numer d1 :denom} {n2 :numer d2 :denom}]
+(defn rational? [r]
+  (= ::Rational (type r)))
+
+(defn add-rat [{n1 :numer d1 :denom :as r1} {n2 :numer d2 :denom :as r2}]
+  {:pre [(rational? r1) (rational? r2)]}
   (make-rat (+ (* n1 d2) (* n2 d1))
             (* d1 d2)))
 
-(defn sub-rat [{n1 :numer d1 :denom} {n2 :numer d2 :denom}]
+(defn sub-rat [{n1 :numer d1 :denom :as r1} {n2 :numer d2 :denom :as r2}]
+  {:pre [(rational? r1) (rational? r2)]}
   (make-rat (- (* n1 d2) (* n2 d1))
             (* d1 d2)))
 
-(defn mul-rat [{n1 :numer d1 :denom} {n2 :numer d2 :denom}]
+(defn mul-rat [{n1 :numer d1 :denom :as r1} {n2 :numer d2 :denom :as r2}]
+  {:pre [(rational? r1) (rational? r2)]}
   (make-rat (* n1 n2)
             (* d1 d2)))
 
-(defn div-rat [{n1 :numer d1 :denom} {n2 :numer d2 :denom}]
+(defn div-rat [{n1 :numer d1 :denom :as r1} {n2 :numer d2 :denom :as r2}]
+  {:pre [(rational? r1) (rational? r2)]}
   (make-rat (* n1 d2)
             (* d1 n2)))
+
+(defn rat->double [{:keys [numer denom] :as rat}]
+  {:pre [(rational? rat)]}
+  (double (/ numer denom)))
 
 (defn equal-rat? [{n1 :numer d1 :denom} {n2 :numer d2 :denom}]
   (= (* n1 d2) (* n2 d1)))

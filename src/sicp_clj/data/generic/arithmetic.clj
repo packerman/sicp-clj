@@ -1,6 +1,7 @@
 (ns sicp-clj.data.generic.arithmetic
   (:require [clojure.test :refer :all]
-            [sicp-clj.data.abstraction :refer [add-rat sub-rat mul-rat div-rat make-rat]]
+            [sicp-clj.core :refer :all]
+            [sicp-clj.data.abstraction :refer [add-rat sub-rat mul-rat div-rat make-rat rat->double]]
             [sicp-clj.data.complex-numbers.message-passing :refer [add-complex sub-complex mul-complex div-complex
                                                                    ->Rectangular equal-complex?]])
   (:import [sicp_clj.data.complex_numbers.message_passing Complex]
@@ -9,76 +10,80 @@
 (defn- double-type-dispatch [a b]
   [(type a) (type b)])
 
-(defmulti add double-type-dispatch)
-(defmulti sub double-type-dispatch)
-(defmulti mul double-type-dispatch)
-(defmulti div double-type-dispatch)
+(defmulti add-2 double-type-dispatch)
+(defmulti sub-2 double-type-dispatch)
+(defmulti mul-2 double-type-dispatch)
+(defmulti div-2 double-type-dispatch)
+(defmulti raise type)
+(defmulti generic-type type)
+
+(defmacro install-type [type & {:keys [add sub mul div raise]}]
+  {:pre [(and add sub mul div raise)]}
+  `(do
+     (defmethod add-2 [~type ~type] [a# b#]
+       (~add a# b#))
+     (defmethod sub-2 [~type ~type] [a# b#]
+       (~sub a# b#))
+     (defmethod mul-2 [~type ~type] [a# b#]
+       (~mul a# b#))
+     (defmethod div-2 [~type ~type] [a# b#]
+       (~div a# b#))
+     (defmethod raise ~type [a#]
+       (~raise a#))
+     (defmethod generic-type ~type [a#]
+       ~type)))
+
+(install-type ::Integer
+              :add +' :sub -' :mul *' :div /
+              :raise #(make-rat % 1))
 
 (derive Long ::Integer)
 (derive BigInt ::Integer)
+
+(install-type ::Float
+              :add +' :sub -' :mul *' :div /
+              :raise #(->Rectangular % 0))
+
 (derive Double ::Float)
-(derive ::Integer ::ClojureNumber)
-(derive ::Float ::ClojureNumber)
-
-(defmethod add [::ClojureNumber ::ClojureNumber] [a b]
-  (+' a b))
-
-(defmethod sub [::ClojureNumber ::ClojureNumber] [a b]
-  (-' a b))
-
-(defmethod mul [::ClojureNumber ::ClojureNumber] [a b]
-  (*' a b))
-
-(defmethod div [::ClojureNumber ::ClojureNumber] [a b]
-  (/ a b))
-
-(defn- add-type
-      ([type isa]
-        (when isa
-          (derive type isa))
-        (prefer-method add [::ClojureNumber ::ClojureNumber] [type type])
-        (prefer-method sub [::ClojureNumber ::ClojureNumber] [type type])
-        (prefer-method mul [::ClojureNumber ::ClojureNumber] [type type])
-        (prefer-method div [::ClojureNumber ::ClojureNumber] [type type]))
-      ([type] (add-type type nil)))
-
 
 (alias 'rat 'sicp-clj.data.abstraction)
 
 (derive ::Integer ::rat/Rational)
 
-(defmethod add [::rat/Rational ::rat/Rational] [a b]
-  (add-rat a b))
+(install-type ::rat/Rational
+              :add add-rat :sub sub-rat :mul mul-rat :div div-rat
+              :raise rat->double)
 
-(defmethod sub [::rat/Rational ::rat/Rational] [a b]
-  (sub-rat a b))
-
-(defmethod mul [::rat/Rational ::rat/Rational] [a b]
-  (mul-rat a b))
-
-(defmethod div [::rat/Rational ::rat/Rational] [a b]
-  (div-rat a b))
-
-(add-type ::rat/Rational ::Float)
+(derive ::rat/Rational ::Float)
 
 (derive Complex ::Complex)
 
 (derive ::Float ::Complex)
 
-(add-type ::Complex)
+(install-type ::Complex
+              :add add-complex :sub sub-complex :mul mul-complex :div div-complex
+              :raise identity)
 
-(defmethod add [::Complex ::Complex] [a b]
-  (add-complex a b))
+(defn make-generic [op on-empty]
+  (fn gen
+    ([] on-empty)
+    ([a] a)
+    ([a b]
+     (if (= (type a) (type b))
+       (op a b)
+       (let [ta (generic-type a)
+             tb (generic-type b)]
+         (cond
+           (isa? ta tb) (recur (raise a) b)
+           (isa? tb ta) (recur a (raise b))
+           :else (error "Cannot op " a " and " b " with types " ta " and " tb))
+         )))
+    ([a b & more] (reduce gen (gen a b) more))))
 
-(defmethod sub [::Complex ::Complex] [a b]
-  (sub-complex a b))
-
-(defmethod mul [::Complex ::Complex] [a b]
-  (mul-complex a b))
-
-(defmethod div [::Complex ::Complex] [a b]
-  (div-complex a b))
-
+(def add (make-generic add-2 0))
+(def sub (make-generic sub-2 0))
+(def mul (make-generic mul-2 1))
+(def div (make-generic div-2 1))
 
 (deftest primitive-numbers
   (letfn [(float-equal? [delta a b]
@@ -91,7 +96,7 @@
         (is (= 3 (div 15 5)))
         (is (= 5.6 (add 3.2 2.4)))
         (is (float-equal? delta 0.8 (sub 3.2 2.4)))
-        (is (= 7.68 (mul 3.2 2.4)))
+        (is (= 7.68 (mul-2 3.2 2.4)))
         (is (float-equal? delta 1.333 (div 3.2 2.4)))
         (is (= 7.5 (add 5 2.5)))
         (is (= 2.5 (sub 5 2.5)))
@@ -118,7 +123,9 @@
 (deftest combining-types
   (let [tolerance 1e-10]
     (is (equal-complex? tolerance (->Rectangular 5.4 2)
-                        (add 2.4 (->Rectangular 3 2))))))
+                        (add 2.4 (->Rectangular 3 2))))
+    (is (equal-complex? tolerance (->Rectangular 6 2)
+                        (add 2.4 (->Rectangular 3 2) (make-rat 3 5))))))
 
 (deftest arithmetic
   (primitive-numbers)
