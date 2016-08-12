@@ -53,10 +53,8 @@
   {:pre [(complex? z)]}
   (and (zero? (real-part z)) (zero? (imag-part z))))
 
-
 (defn equal-complex? [tolerance z1 z2]
   (> tolerance (magnitude (sub-complex z1 z2))))
-
 
 (deftest complex-operations
   (let [tolerance 1e-10

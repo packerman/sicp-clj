@@ -7,7 +7,7 @@
 (defn make-poly [variable terms]
   ^{:type ::Polynomial}
   {:variable variable
-   :terms terms})
+   :terms    terms})
 
 (defn poly? [p]
   (= ::Polynomial (type p)))
@@ -48,14 +48,14 @@
                          (add-terms rest-terms-1 rest-terms-2)))))
 
 (defn- mul-terms [terms-1 terms-2]
-  (letfn [(mul-term-by-all-terms [[order-1 coeff-1 :as t] terms]
-            (when-let [[[order-2 coeff-2 :as first-term] & rest-terms] (seq terms)]
-              (adjoin-term (make-term (+ order-1 order-2)
-                                      (mul coeff-1 coeff-2))
-                           (mul-term-by-all-terms t rest-terms))))]
-    (when-let [[t1 & rest-terms-1] (seq terms-1)]
-      (add-terms (mul-term-by-all-terms t1 terms-2)
-                 (mul-terms rest-terms-1 terms-2)))))
+  (letfn [(mul-2-terms [[order-1 coeff-1] [order-2 coeff-2]]
+            (make-term (+ order-1 order-2)
+                       (mul coeff-1 coeff-2)))
+          (mull-term-by-all-terms [t terms]
+            (map #(mul-2-terms t %) terms))]
+    (reduce add-terms
+            nil
+            (map #(mull-term-by-all-terms % terms-2) terms-1))))
 
 (defn- adjoin-term [[_ coeff :as t] terms]
   (if (=zero? coeff)
@@ -87,6 +87,3 @@
 
 (defn test-ns-hook []
   (polynomials))
-
-
-
