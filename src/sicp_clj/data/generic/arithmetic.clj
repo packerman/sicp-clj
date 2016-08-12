@@ -1,9 +1,9 @@
 (ns sicp-clj.data.generic.arithmetic
   (:require [clojure.test :refer :all]
             [sicp-clj.core :refer :all]
-            [sicp-clj.data.abstraction :refer [add-rat sub-rat mul-rat div-rat make-rat rat->double]]
+            [sicp-clj.data.abstraction :refer [add-rat sub-rat mul-rat div-rat make-rat rat->double zero-rat?]]
             [sicp-clj.data.complex-numbers.message-passing :refer [add-complex sub-complex mul-complex div-complex
-                                                                   ->Rectangular equal-complex?]])
+                                                                   ->Rectangular equal-complex? zero-complex?]])
   (:import [sicp_clj.data.complex_numbers.message_passing Complex]
            [clojure.lang BigInt]))
 
@@ -16,9 +16,10 @@
 (defmulti div-2 double-type-dispatch)
 (defmulti raise type)
 (defmulti generic-type type)
+(defmulti =zero? type)
 
-(defmacro install-type [type & {:keys [add sub mul div raise]}]
-  {:pre [(and add sub mul div raise)]}
+(defmacro install-type [type & {:keys [add sub mul div raise zero]}]
+  {:pre [(and add sub mul div zero raise)]}
   `(do
      (defmethod add-2 [~type ~type] [a# b#]
        (~add a# b#))
@@ -28,20 +29,22 @@
        (~mul a# b#))
      (defmethod div-2 [~type ~type] [a# b#]
        (~div a# b#))
+     (defmethod =zero? ~type [a#]
+       (~zero a#))
      (defmethod raise ~type [a#]
        (~raise a#))
      (defmethod generic-type ~type [_#]
        ~type)))
 
 (install-type ::Integer
-              :add +' :sub -' :mul *' :div /
+              :add +' :sub -' :mul *' :div / :zero zero?
               :raise #(make-rat % 1))
 
 (derive Long ::Integer)
 (derive BigInt ::Integer)
 
 (install-type ::Float
-              :add +' :sub -' :mul *' :div /
+              :add +' :sub -' :mul *' :div / :zero zero?
               :raise #(->Rectangular % 0))
 
 (derive Double ::Float)
@@ -51,7 +54,7 @@
 (derive ::Integer ::rat/Rational)
 
 (install-type ::rat/Rational
-              :add add-rat :sub sub-rat :mul mul-rat :div div-rat
+              :add add-rat :sub sub-rat :mul mul-rat :div div-rat :zero zero-rat?
               :raise rat->double)
 
 (derive ::rat/Rational ::Float)
@@ -61,7 +64,7 @@
 (derive ::Float ::Complex)
 
 (install-type ::Complex
-              :add add-complex :sub sub-complex :mul mul-complex :div div-complex
+              :add add-complex :sub sub-complex :mul mul-complex :div div-complex :zero zero-complex?
               :raise identity)
 
 (defn make-generic [op on-empty]
@@ -133,4 +136,8 @@
 
 (defn test-ns-hook []
   (arithmetic))
+
+;TODO
+;
+; Check exercises 2.82 - 2.86 for further improvment
 

@@ -49,6 +49,10 @@
     (/ (magnitude z1) (magnitude z2))
     (- (angle z1) (angle z2))))
 
+(defn zero-complex? [z]
+  {:pre [(complex? z)]}
+  (and (zero? (real-part z)) (zero? (imag-part z))))
+
 
 (defn equal-complex? [tolerance z1 z2]
   (> tolerance (magnitude (sub-complex z1 z2))))

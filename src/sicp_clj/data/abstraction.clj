@@ -34,6 +34,10 @@
   (make-rat (* n1 d2)
             (* d1 n2)))
 
+(defn zero-rat? [{:keys [numer] :as r}]
+  {:pre [(rational? r)]}
+  (zero? numer))
+
 (defn rat->double [{:keys [numer denom] :as rat}]
   {:pre [(rational? rat)]}
   (double (/ numer denom)))
