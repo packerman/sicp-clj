@@ -22,34 +22,42 @@
   (magnitude [_] magnitude)
   (angle [_] angle))
 
+(defn complex? [z]
+  (extends? Complex (type z)))
 
 (defn add-complex [z1 z2]
+  {:pre [(complex? z1) (complex? z2)]}
   (->Rectangular
     (+ (real-part z1) (real-part z2))
     (+ (imag-part z1) (imag-part z2))))
 
 (defn sub-complex [z1 z2]
+  {:pre [(complex? z1) (complex? z2)]}
   (->Rectangular
     (- (real-part z1) (real-part z2))
     (- (imag-part z1) (imag-part z2))))
 
 (defn mul-complex [z1 z2]
+  {:pre [(complex? z1) (complex? z2)]}
   (->Polar
     (* (magnitude z1) (magnitude z2))
     (+ (angle z1) (angle z2))))
 
 (defn div-complex [z1 z2]
+  {:pre [(complex? z1) (complex? z2)]}
   (->Polar
     (/ (magnitude z1) (magnitude z2))
     (- (angle z1) (angle z2))))
 
+(defn zero-complex? [z]
+  {:pre [(complex? z)]}
+  (and (zero? (real-part z)) (zero? (imag-part z))))
 
 (defn equal-complex? [tolerance z1 z2]
   (> tolerance (magnitude (sub-complex z1 z2))))
 
-
 (deftest complex-operations
-  (let [tolerance 1e10
+  (let [tolerance 1e-10
         i (->Rectangular 0 1)
         real (fn [x] (->Rectangular x 0))]
     (is (equal-complex? tolerance
