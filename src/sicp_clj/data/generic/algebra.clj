@@ -54,7 +54,7 @@
 
 (defn make-div-result [quot rem]
   {:quot quot
-   :rem rem})
+   :rem  rem})
 
 (defn div-poly [{variable-1 :variable terms-1 :terms :as p1}
                 {variable-2 :variable terms-2 :terms :as p2}]
@@ -75,7 +75,8 @@
                          (add-terms rest-terms-1 rest-terms-2)))))
 
 (defn- neg-terms [terms]
-  (for [[order coeff] terms] [order (neg coeff)]))
+  (for [[order coeff] terms]
+    [order (neg coeff)]))
 
 (defn- sub-terms [terms-1 terms-2]
   (add-terms terms-1 (neg-terms terms-2)))
@@ -98,10 +99,11 @@
         (make-div-result '() terms-1)
         (let [new-term (make-term (- order-1 order-2)
                                   (div coeff-1 coeff-2))
-              rest-result (div-terms (sub-terms terms-1
-                                               (mull-term-by-all-terms new-term terms-2))
-                                     terms-2)]
-          (make-div-result (adjoin-term new-term (:quot rest-result)) (:rem rest-result)))))
+              {quot-rec :quot
+               rem-rec  :rem} (div-terms (sub-terms terms-1
+                                                    (mull-term-by-all-terms new-term terms-2))
+                                         terms-2)]
+          (make-div-result (adjoin-term new-term quot-rec) rem-rec))))
     (make-div-result '() '())))
 
 (defn- adjoin-term [[_ coeff :as t] terms]
