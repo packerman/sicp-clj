@@ -38,6 +38,10 @@
   {:pre [(rational? r)]}
   (zero? numer))
 
+(defn neg-rat [{:keys [numer denom] :as r}]
+  {:pre [(rational? r)]}
+  (make-rat (- numer) denom))
+
 (defn rat->double [{:keys [numer denom] :as rat}]
   {:pre [(rational? rat)]}
   (double (/ numer denom)))

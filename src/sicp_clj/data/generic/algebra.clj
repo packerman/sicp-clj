@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [sicp-clj.core :refer :all]
             [sicp-clj.data.generic.arithmetic :refer [install-type
-                                                      add sub mul div =zero?]]))
+                                                      add sub mul div =zero? neg]]))
 
 (defn make-poly [variable terms]
   ^{:type ::Polynomial}
@@ -27,6 +27,14 @@
   {:pre [(poly? p1) (poly? p2) (= variable-1 variable-2)]}
   (make-poly variable-1
              (add-terms terms-1 terms-2)))
+
+(defn neg-poly [{:keys [variable terms] :as p}]
+  {:pre [(poly? p)]}
+  (make-poly 'x (for [[order coeff] terms] [order (neg coeff)])))
+
+(defn sub-poly [p1 p2]
+  {:pre [(poly? p1) (poly? p2)]}
+  (add-poly p1 (neg-poly p2)))
 
 (declare mul-terms)
 
@@ -64,10 +72,11 @@
 
 (install-type ::Polynomial
               :add add-poly
-              :sub (fn [_ _])
+              :sub (fn [a b] (add-poly a (neg-poly b)))
               :mul mul-poly
               :div (fn [_ _])
               :zero zero-poly?
+              :neg neg-poly
               :raise identity)
 
 (deftest adding
@@ -76,6 +85,15 @@
               (make-poly 'x '([3 1] [1 3] [0 -6]))
               (make-poly 'x '([2 -2] [1 1] [0 -2]))))))
 
+(deftest negating
+  (is (= (make-poly 'x '([3 -3] [2 8] [1 5] [0 -6])))
+      (neg (make-poly 'x '([3 3] [2 -8] [[1 -5] [0 6]])))))
+
+(deftest subtracting
+  (is (= (make-poly 'x '([3 -2] [2 11] [1 10] [0 -10]))
+         (sub (make-poly 'x '([3 1] [2 3] [1 5] [0 -4]))
+              (make-poly 'x '([3 3] [2 -8] [1 -5] [0 6]))))))
+
 (deftest multiplying
   (is (= (make-poly 'x '([6 2] [5 4] [4 1] [3 11] [2 2] [1 4] [0 4]))
          (mul (make-poly 'x '([3 1] [2 2] [0 4]))
@@ -83,6 +101,8 @@
 
 (deftest polynomials
   (adding)
+  (negating)
+  (subtracting)
   (multiplying))
 
 (defn test-ns-hook []

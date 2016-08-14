@@ -53,6 +53,11 @@
   {:pre [(complex? z)]}
   (and (zero? (real-part z)) (zero? (imag-part z))))
 
+(defn neg-complex [z]
+  {:pre [(complex? z)]}
+  (->Rectangular (- (real-part z))
+                 (- (imag-part z))))
+
 (defn equal-complex? [tolerance z1 z2]
   (> tolerance (magnitude (sub-complex z1 z2))))
 
