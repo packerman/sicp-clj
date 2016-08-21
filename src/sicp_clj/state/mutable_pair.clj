@@ -35,17 +35,17 @@
       (set-cdr! [_ newval] (.setCdr c newval)))))
 
 (deftest mutable-pair
-  (letfn [(mutable-pair-test [pair]
+  (letfn [(is-pair? [[x y] pair]
+            (is (= x (car pair)))
+            (is (= y (cdr pair))))
+          (mutable-pair-test [pair]
             (set-car! pair 1)
             (set-cdr! pair 2)
-            (is (= 1 (car pair)))
-            (is (= 2 (cdr pair)))
+            (is-pair? [1 2] pair)
             (set-cdr! pair 4)
-            (is (= 1 (car pair)))
-            (is (= 4 (cdr pair)))
+            (is-pair? [1 4] pair)
             (set-car! pair 3)
-            (is (= 3 (car pair)))
-            (is (= 4 (cdr pair))))]
+            (is-pair? [3 4] pair))]
     (mutable-pair-test (make-atom-pair nil nil))
     (dosync
       (mutable-pair-test (make-ref-pair nil nil)))
