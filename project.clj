@@ -9,4 +9,5 @@
                  :init (do
                          (require '[clojure.test :refer [run-tests]])
                          (require '[clojure.tools.namespace.repl :refer [refresh]]))}
-  :aot :all)
+  :aot :all
+  :java-source-paths ["java"])
