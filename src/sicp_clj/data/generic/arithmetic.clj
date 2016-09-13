@@ -96,7 +96,7 @@
 (deftest primitive-numbers
   (letfn [(float-equal? [delta a b]
             (> delta (Math/abs (- a b))))]
-    (let [delta 1e10]
+    (let [delta 1e-10]
       (testing "clojure numbers"
         (is (= 20 (add 15 5)))
         (is (= 10 (sub 15 5)))
