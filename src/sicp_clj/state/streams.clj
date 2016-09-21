@@ -96,6 +96,13 @@
                   (scale-seq 3 (hamming))
                   (scale-seq 5 (hamming)))))))
 
+(defn expand [num den radix]
+  (lazy-seq
+    (cons (quot (*' num radix) den)
+          (expand (rem (*' num radix) den)
+                  den
+                  radix))))
+
 (deftest streams
   (testing "Infinite"
     (is (= [1 2 3 4 5] (take 5 (integers 1))))
@@ -110,4 +117,6 @@
     (is (= [2 3 5 7 11 13 17 19 23 29] (take 10 (primes))))
     (is (= [1 3 6 10 15] (take 5 (partial-sums (integers)))))
     (is (= [1 2 3 4 5 6 8 9 10 12 15 16 18 20 24 25 27 30 32 36 40 45 48 50 54 60]
-           (take 26 (hamming))))))
+           (take 26 (hamming))))
+    (is (= [1 4 2 8 5 7] (take 6 (expand 1 7 10))))
+    (is (= [3 7 5] (take 3 (expand 3 8 10))))))
