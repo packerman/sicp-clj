@@ -169,7 +169,7 @@
          (weighted-pairs (rest s) (rest t) weight)
          weight))))
   ([s weight]
-    (weighted-pairs s s weight)))
+   (weighted-pairs s s weight)))
 
 (defn weighted-triples
   ([[x & xs] [y & ys] [z & zs] weight]
@@ -192,8 +192,7 @@
          (partition 2 1)
          (filter (fn [[p1 p2]]
                    (= (sum-of-cubes p1) (sum-of-cubes p2))))
-         (map first)
-         (map sum-of-cubes))))
+         (map (fn [[p _]] (sum-of-cubes p))))))
 
 (deftest streams
   (testing "Infinite"
@@ -218,8 +217,9 @@
     (is (= [1 0 -1/2 0 1/24] (take 5 (cosine-series))))
     #_(is (= [1 0 0 0 0] (take 5 (add-seqs (mul-series (sine-series) (sine-series))
                                            (mul-series (cosine-series) (cosine-series))))))
-    (is (= [[1 1 1] [1 1 2] [1 2 2] [1 1 3] [1 2 3] [2 2 2] [1 1 4] [1 3 3] [2 2 3] [1 1 5] [1 2 4] [1 3 4]
-            [2 3 3] [1 1 6] [2 2 4] [1 2 5] [1 4 4] [2 3 4] [1 1 7] [3 3 3] [1 2 6] [2 2 5] [1 3 5]]
+    (is (= [[1 1 1] [1 1 2] [1 2 2] [1 1 3] [1 2 3] [2 2 2] [1 1 4] [1 3 3]
+            [2 2 3] [1 1 5] [1 2 4] [1 3 4] [2 3 3] [1 1 6] [2 2 4] [1 2 5]
+            [1 4 4] [2 3 4] [1 1 7] [3 3 3] [1 2 6] [2 2 5] [1 3 5]]
            (take 23 (weighted-triples (integers) (fn [[x y z]] (+ x y z))))))
     (is (= #{[3 4 5] [6 8 10] [5 12 13] [9 12 15] [8 15 17]}
            (set (take 5 (filter (fn [[_ _ c]] (< c 20)) (pythagorean-triples))))))
