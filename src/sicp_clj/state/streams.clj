@@ -159,6 +159,18 @@
                     (cons y
                           (merge-weighted (rest s) (rest t) weight)))))))
 
+(defn weighted-pairs
+  ([s t weight]
+   (lazy-seq
+     (cons
+       (vector (first s) (first t))
+       (merge-weighted
+         (map #(vector (first s) %) (rest t))
+         (weighted-pairs (rest s) (rest t) weight)
+         weight))))
+  ([s weight]
+    (weighted-pairs s s weight)))
+
 (defn weighted-triples
   ([[x & xs] [y & ys] [z & zs] weight]
    (lazy-seq
@@ -172,6 +184,16 @@
          (weighted-triples xs ys zs weight)
          weight))))
   ([s weight] (weighted-triples s s s weight)))
+
+(defn ramanujan-numbers []
+  (let [sum-of-cubes (fn [[i j]]
+                       (+ (cube i) (cube j)))]
+    (->> (weighted-pairs (integers) sum-of-cubes)
+         (partition 2 1)
+         (filter (fn [[p1 p2]]
+                   (= (sum-of-cubes p1) (sum-of-cubes p2))))
+         (map first)
+         (map sum-of-cubes))))
 
 (deftest streams
   (testing "Infinite"
@@ -200,4 +222,5 @@
             [2 3 3] [1 1 6] [2 2 4] [1 2 5] [1 4 4] [2 3 4] [1 1 7] [3 3 3] [1 2 6] [2 2 5] [1 3 5]]
            (take 23 (weighted-triples (integers) (fn [[x y z]] (+ x y z))))))
     (is (= #{[3 4 5] [6 8 10] [5 12 13] [9 12 15] [8 15 17]}
-           (set (take 5 (filter (fn [[_ _ c]] (< c 20)) (pythagorean-triples))))))))
+           (set (take 5 (filter (fn [[_ _ c]] (< c 20)) (pythagorean-triples))))))
+    (is (= [1729 4104 13832 20683 32832 39312] (take 6 (ramanujan-numbers))))))
