@@ -6,6 +6,8 @@
 
 (defn square [x] (*' x x))
 
+(defn cube [x] (*' x x x))
+
 (defn divisible? [x y]
   (zero? (rem x y)))
 
@@ -20,4 +22,3 @@
 
 (deftest positions-test
   (is (= [1 3 4] (positions odd? [0 1 2 3 5]))))
-
