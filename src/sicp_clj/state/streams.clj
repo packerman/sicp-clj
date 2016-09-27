@@ -103,6 +103,60 @@
                   den
                   radix))))
 
+(defn integrate-series [series]
+  (letfn [(integrate [s n]
+            (lazy-seq
+              (cons (* (/ n) (first s))
+                    (integrate (rest s) (inc n)))))]
+    (integrate series 1)))
+
+(defn exp-series []
+  (lazy-seq
+    (cons 1
+          (integrate-series (exp-series)))))
+
+(defn negate-series [series]
+  (map - series))
+
+(declare sine-series)
+
+(defn cosine-series []
+  (cons 1
+        (negate-series
+          (integrate-series (sine-series)))))
+
+(defn sine-series []
+  (lazy-seq
+    (cons 0
+          (integrate-series (cosine-series)))))
+
+#_(defn mul-series [s1 s2])
+;TODO Implement mul-series, uncomment test for sin^2 x + cos^2 x = 1
+
+(defn pairs [s t]
+  (lazy-seq
+    (cons
+      (list (first s) (first t))
+      (interleave
+        (map #(list (first s) %) (rest t))
+        (pairs (rest s) (rest t))))))
+
+(defn triples [s t u]
+  )
+
+(defn integer-triples []
+  (for [k (range)
+        j (range k)
+        i (range j)]
+    (list (inc i) (inc j) (inc k))))
+
+(defn pythagorean-triples []
+  (lazy-seq
+    (->> (integer-triples)
+         (filter
+           (fn [[a b c]]
+             (= (+ (square a) (square b)) (square c)))))))
+
 (deftest streams
   (testing "Infinite"
     (is (= [1 2 3 4 5] (take 5 (integers 1))))
@@ -119,4 +173,16 @@
     (is (= [1 2 3 4 5 6 8 9 10 12 15 16 18 20 24 25 27 30 32 36 40 45 48 50 54 60]
            (take 26 (hamming))))
     (is (= [1 4 2 8 5 7] (take 6 (expand 1 7 10))))
-    (is (= [3 7 5] (take 3 (expand 3 8 10))))))
+    (is (= [3 7 5] (take 3 (expand 3 8 10))))
+    (is (= [1 1/2 1/3 1/4 1/5] (take 5 (integrate-series (ones)))))
+    (is (= [1 1 1/2 1/6 1/24] (take 5 (exp-series))))
+    (is (= [0 1 0 -1/6 0 1/120] (take 6 (sine-series))))
+    (is (= [1 0 -1/2 0 1/24] (take 5 (cosine-series))))
+    #_(is (= [1 0 0 0 0] (take 5 (add-seqs (mul-series (sine-series) (sine-series))
+                                           (mul-series (cosine-series) (cosine-series))))))
+    #_(is (= [] (take 20 (pairs (integers) (integers)))))
+    #_(is (= 0 (first (positions #{[5 12]} (pairs (integers) (integers))))))
+    #_(is (= 0 (first (positions #{[12 13]} (pairs (integers) (integers))))))
+    #_(is (= [] (take 20 (triples (integers) (integers) (integers)))))
+    #_(is (= 0 (first (positions (fn [[x y z]] (= [6 8] [x y])) (triples (integers) (integers) (integers))))))
+    (is (= [] (take 100 (pythagorean-triples))))))
