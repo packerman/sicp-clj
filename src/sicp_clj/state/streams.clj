@@ -215,6 +215,21 @@
                                        (invert-unit-series
                                          (scale-seq s b))))))
 
+(defn integral [integrand initial-value dt]
+  (letfn [(int []
+            (lazy-seq
+              (cons initial-value
+                    (add-seqs (scale-seq dt integrand)
+                              (int)))))]
+    (int)))
+
+#_(defn RC [R C dt]
+  (fn [i v0]
+    (add-seqs
+      (integral (scale-seq (/ 1 C) i) v0 dt)
+      (scale-seq R i))))
+;TODO check RC circuit
+
 (deftest streams
   (testing "Infinite"
     (is (= [1 2 3 4 5] (take 5 (integers 1))))
@@ -248,4 +263,5 @@
     (is (= (take 10 (cosine-series))
            (take 10 (invert-unit-series
                       (invert-unit-series (cosine-series))))))
-    (is (= [0 1 0 1/3 0 2/15] (take 6 (div-series (sine-series) (cosine-series)))))))
+    (is (= [0 1 0 1/3 0 2/15] (take 6 (div-series (sine-series) (cosine-series)))))
+    #_(is (= [] (take 10 ((RC 5 1 0.5) (repeat 1.0) 1.0))))))
