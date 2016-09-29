@@ -117,8 +117,12 @@
     (cons 0
           (integrate-series (cosine-series)))))
 
-#_(defn mul-series [s1 s2])
-;TODO Implement mul-series, uncomment test for sin^2 x + cos^2 x = 1
+(defn mul-series [s1 s2]
+  (lazy-seq
+    (cons (* (first s1) (first s2))
+          (add-seqs
+            (scale-seq (first s1) (rest s2))
+            (mul-series (rest s1) s2)))))
 
 (defn pairs [s t]
   (lazy-seq
@@ -196,6 +200,21 @@
                    (= (sum-of-cubes p1) (sum-of-cubes p2))))
          (map (fn [[p _]] (sum-of-cubes p))))))
 
+(defn invert-unit-series [s]
+  {:pre [(= 1 (first s))]}
+  (lazy-seq
+    (cons 1
+          (negate-series (mul-series
+                           (rest s)
+                           (invert-unit-series s))))))
+
+(defn div-series [a b]
+            {:pre [(not (zero? (first b)))]}
+            (let [s (/ 1 (first b))]
+              (scale-seq s (mul-series a
+                                       (invert-unit-series
+                                         (scale-seq s b))))))
+
 (deftest streams
   (testing "Infinite"
     (is (= [1 2 3 4 5] (take 5 (integers 1))))
@@ -217,12 +236,16 @@
     (is (= [1 1 1/2 1/6 1/24] (take 5 (exp-series))))
     (is (= [0 1 0 -1/6 0 1/120] (take 6 (sine-series))))
     (is (= [1 0 -1/2 0 1/24] (take 5 (cosine-series))))
-    #_(is (= [1 0 0 0 0] (take 5 (add-seqs (mul-series (sine-series) (sine-series))
-                                           (mul-series (cosine-series) (cosine-series))))))
+    (is (= [1 0 0 0 0 0 0 0 0 0] (take 10 (add-seqs (mul-series (sine-series) (sine-series))
+                                                    (mul-series (cosine-series) (cosine-series))))))
     (is (= #{[1 1 1] [1 1 2] [1 2 2] [1 1 3] [1 2 3] [2 2 2] [1 1 4] [1 2 4] [2 2 3] [1 1 5]
              [1 3 3] [1 2 5] [2 3 3] [1 1 6] [2 2 4] [1 3 4] [1 2 6] [2 3 4] [1 1 7] [3 3 3]
              [1 3 5] [2 2 5] [1 4 4]}
-           (set (take 23 (weighted-triples (integers) (fn [[x y z]] (+ x y z))))) ))
+           (set (take 23 (weighted-triples (integers) (fn [[x y z]] (+ x y z)))))))
     (is (= #{[3 4 5] [6 8 10] [5 12 13] [9 12 15] [8 15 17]}
            (set (take 5 (filter (fn [[_ _ c]] (< c 20)) (pythagorean-triples))))))
-    (is (= [1729 4104 13832 20683 32832 39312] (take 6 (ramanujan-numbers))))))
+    (is (= [1729 4104 13832 20683 32832 39312] (take 6 (ramanujan-numbers))))
+    (is (= (take 10 (cosine-series))
+           (take 10 (invert-unit-series
+                      (invert-unit-series (cosine-series))))))
+    (is (= [0 1 0 1/3 0 2/15] (take 6 (div-series (sine-series) (cosine-series)))))))
