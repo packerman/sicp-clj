@@ -52,13 +52,12 @@
     (cons 2
           (filter prime? (integers 3)))))
 
-(defn partial-sums
-  ([s] (partial-sums s 0))
-  ([[x & xs] part]
-   (let [sum (+ x part)]
-     (lazy-seq
-       (cons sum
-             (partial-sums xs sum))))))
+(defn partial-sums [s]
+  (lazy-seq
+    (cons
+      (first s)
+      (add-seqs (partial-sums s)
+                (rest s)))))
 
 (defn binary-merge [s1 s2]
   (lazy-seq
@@ -74,27 +73,15 @@
                     :else (cons f1
                                 (binary-merge (rest s1) (rest s2))))))))
 
-(defn merge-seqs [seqs]
-  (let [k (count seqs)]
-    (condp = k
-      0 nil
-      1 (first seqs)
-      2 (binary-merge (first seqs)
-                      (second seqs))
-      (let [[seqs-1 seqs-2] (split-at (quot k 2) seqs)]
-        (binary-merge (merge-seqs seqs-1)
-                      (merge-seqs seqs-2))))))
-
 (defn scale-seq [k s]
   (map #(*' k %) s))
 
 (defn hamming []
   (lazy-seq
     (cons 1
-          (merge-seqs
-            (list (scale-seq 2 (hamming))
-                  (scale-seq 3 (hamming))
-                  (scale-seq 5 (hamming)))))))
+          (binary-merge (scale-seq 2 (hamming))
+                        (binary-merge (scale-seq 3 (hamming))
+                                      (scale-seq 5 (hamming)))))))
 
 (defn expand [num den radix]
   (lazy-seq
@@ -102,6 +89,148 @@
           (expand (rem (*' num radix) den)
                   den
                   radix))))
+
+(defn integrate-series [series]
+  (letfn [(integrate [s n]
+            (lazy-seq
+              (cons (* (/ n) (first s))
+                    (integrate (rest s) (inc n)))))]
+    (integrate series 1)))
+
+(defn exp-series []
+  (lazy-seq
+    (cons 1
+          (integrate-series (exp-series)))))
+
+(defn negate-series [series]
+  (map - series))
+
+(declare sine-series)
+
+(defn cosine-series []
+  (cons 1
+        (negate-series
+          (integrate-series (sine-series)))))
+
+(defn sine-series []
+  (lazy-seq
+    (cons 0
+          (integrate-series (cosine-series)))))
+
+(defn mul-series [s1 s2]
+  (lazy-seq
+    (cons (* (first s1) (first s2))
+          (add-seqs
+            (scale-seq (first s1) (rest s2))
+            (mul-series (rest s1) s2)))))
+
+(defn pairs [s t]
+  (lazy-seq
+    (cons
+      (vector (first s) (first t))
+      (interleave
+        (map #(vector (first s) %) (rest t))
+        (pairs (rest s) (rest t))))))
+
+(defn triples
+  ([[x & xs] [y & ys] [z & zs]]
+   (lazy-seq
+     (cons
+       (vector x y z)
+       (interleave
+         (interleave
+           (map #(apply vector x %) (pairs ys zs))
+           (map #(vector x y %) zs))
+         (triples xs ys zs)))))
+  ([s] (triples s s s)))
+
+(defn pythagorean-triples []
+  (->> (triples (integers))
+       (filter
+         (fn [[a b c]]
+           (= (+ (square a) (square b)) (square c))))))
+
+(defn merge-weighted [s t weight]
+  (lazy-seq
+    (let [x (first s)
+          y (first t)]
+      (cond
+        (< (weight x) (weight y)) (cons x
+                                        (merge-weighted (rest s) t weight))
+        (> (weight x) (weight y)) (cons y
+                                        (merge-weighted s (rest t) weight))
+        :else (cons x
+                    (cons y
+                          (merge-weighted (rest s) (rest t) weight)))))))
+
+(defn weighted-pairs
+  ([s t weight]
+   (lazy-seq
+     (cons
+       (vector (first s) (first t))
+       (merge-weighted
+         (map #(vector (first s) %) (rest t))
+         (weighted-pairs (rest s) (rest t) weight)
+         weight))))
+  ([s weight]
+   (weighted-pairs s s weight)))
+
+(defn weighted-triples
+  ([[x & xs] [y & ys] [z & zs] weight]
+   (lazy-seq
+     (cons
+       (vector x y z)
+       (merge-weighted
+         (merge-weighted
+           (map #(apply vector x %)
+                (weighted-pairs ys zs
+                                #(weight (apply vector x %))))
+           (map #(vector x y %) zs)
+           weight)
+         (weighted-triples xs ys zs weight)
+         weight))))
+  ([s weight] (weighted-triples s s s weight)))
+
+(defn ramanujan-numbers []
+  (let [sum-of-cubes (fn [[i j]]
+                       (+ (cube i) (cube j)))]
+    (->> (weighted-pairs (integers) sum-of-cubes)
+         (partition 2 1)
+         (filter (fn [[p1 p2]]
+                   (= (sum-of-cubes p1) (sum-of-cubes p2))))
+         (map (fn [[p _]] (sum-of-cubes p))))))
+
+(defn invert-unit-series [s]
+  {:pre [(= 1 (first s))]}
+  (lazy-seq
+    (cons 1
+          (negate-series (mul-series
+                           (rest s)
+                           (invert-unit-series s))))))
+
+(defn div-series [a b]
+            {:pre [(not (zero? (first b)))]}
+            (let [s (/ 1 (first b))]
+              (scale-seq s (mul-series a
+                                       (invert-unit-series
+                                         (scale-seq s b))))))
+
+(defn integral [integrand initial-value dt]
+  (letfn [(int []
+            (lazy-seq
+              (cons initial-value
+                    (add-seqs (scale-seq dt integrand)
+                              (int)))))]
+    (int)))
+
+#_(defn RC [R C dt]
+  (fn [i v0]
+    (add-seqs
+      (integral (scale-seq (/ 1 C) i) v0 dt)
+      (scale-seq R i))))
+;TODO check RC circuit
+
+;TODO 3.5.4 Streams and Delayed Evaluation
 
 (deftest streams
   (testing "Infinite"
@@ -119,4 +248,22 @@
     (is (= [1 2 3 4 5 6 8 9 10 12 15 16 18 20 24 25 27 30 32 36 40 45 48 50 54 60]
            (take 26 (hamming))))
     (is (= [1 4 2 8 5 7] (take 6 (expand 1 7 10))))
-    (is (= [3 7 5] (take 3 (expand 3 8 10))))))
+    (is (= [3 7 5] (take 3 (expand 3 8 10))))
+    (is (= [1 1/2 1/3 1/4 1/5] (take 5 (integrate-series (ones)))))
+    (is (= [1 1 1/2 1/6 1/24] (take 5 (exp-series))))
+    (is (= [0 1 0 -1/6 0 1/120] (take 6 (sine-series))))
+    (is (= [1 0 -1/2 0 1/24] (take 5 (cosine-series))))
+    (is (= [1 0 0 0 0 0 0 0 0 0] (take 10 (add-seqs (mul-series (sine-series) (sine-series))
+                                                    (mul-series (cosine-series) (cosine-series))))))
+    (is (= #{[1 1 1] [1 1 2] [1 2 2] [1 1 3] [1 2 3] [2 2 2] [1 1 4] [1 2 4] [2 2 3] [1 1 5]
+             [1 3 3] [1 2 5] [2 3 3] [1 1 6] [2 2 4] [1 3 4] [1 2 6] [2 3 4] [1 1 7] [3 3 3]
+             [1 3 5] [2 2 5] [1 4 4]}
+           (set (take 23 (weighted-triples (integers) (fn [[x y z]] (+ x y z)))))))
+    (is (= #{[3 4 5] [6 8 10] [5 12 13] [9 12 15] [8 15 17]}
+           (set (take 5 (filter (fn [[_ _ c]] (< c 20)) (pythagorean-triples))))))
+    (is (= [1729 4104 13832 20683 32832 39312] (take 6 (ramanujan-numbers))))
+    (is (= (take 10 (cosine-series))
+           (take 10 (invert-unit-series
+                      (invert-unit-series (cosine-series))))))
+    (is (= [0 1 0 1/3 0 2/15] (take 6 (div-series (sine-series) (cosine-series)))))
+    #_(is (= [] (take 10 ((RC 5 1 0.5) (repeat 1.0) 1.0))))))
