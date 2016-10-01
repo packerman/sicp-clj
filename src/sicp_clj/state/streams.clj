@@ -230,6 +230,8 @@
       (scale-seq R i))))
 ;TODO check RC circuit
 
+;TODO 3.5.4 Streams and Delayed Evaluation
+
 (deftest streams
   (testing "Infinite"
     (is (= [1 2 3 4 5] (take 5 (integers 1))))
