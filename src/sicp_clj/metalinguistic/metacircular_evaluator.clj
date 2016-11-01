@@ -85,6 +85,10 @@
                         (sequence->exp (cond-actions first-clause))
                         (expand-clauses rest-clauses)))
                 'false)))
+          (application? [exp]
+            (list? exp))
+          (apply [procedure arguments])
+          (list-of-values [exps env])
           ]
     (cond
       (self-evaluating? exp) (->Evaluated exp env)
@@ -96,6 +100,10 @@
       (lambda? exp) (eval-lambda exp env)
       (begin? exp) (eval-sequence (rest exp) env)
       (cond? exp) (eval (cond->if exp) env)
+      (application? exp) (let [[operator  & operands] exp
+                               {op-val :expression op-env :environment} (eval operator env)
+                               {operands-val :expression operands-env :environment} (list-of-values operands op-env)]
+                           (->Evaluated (apply op-val operands-val) operands-env))
       :else (error "Unknown expression type: EVAL " exp))))
 
 (defmacro expression-is [expected tested]
@@ -140,4 +148,11 @@
                     (define x 3)
                     (set! x 5)
                     x)
+                 {}))))
+  (testing "Application"
+    (is (= (->Evaluated 2 {})
+           (eval '((lambda (x y z) (if x y z)) true 2 3)
+                 {})))
+    (is (= (->Evaluated 3 {})
+           (eval '((lambda (x y z) (if x y z)) false 2 3)
                  {})))))
