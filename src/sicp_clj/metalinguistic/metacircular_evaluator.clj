@@ -59,8 +59,11 @@
           (definition? [exp]
             (tagged-list? exp 'define))
           (eval-definition [exp env]
-            (let [[_ var val] exp]
-              (define-variable! var (eval val env) env)))
+            (let [[_ var & body] exp]
+              (if (symbol? var)
+                (define-variable! var (eval (first body) env) env)
+                (let [[var & parameters] var]
+                  (define-variable! var (list* 'lambda parameters body) env)))))
           (if? [exp]
             (tagged-list? exp 'if))
           (boolean? [exp] (contains? #{'true 'false} exp))
@@ -157,7 +160,10 @@
       (is (= '{x 5} (frame env))))
     (let [env (make-env {})]
       (eval '(define x 5) env)
-      (is (= '{x 5} (frame env)))))
+      (is (= '{x 5} (frame env))))
+    (let [env (make-env)]
+      (eval '(define (f x) (x x)) env)
+      (is (= '{f (lambda (x) (x x))} (frame env)))))
   (testing "If expression and cond"
     (is (= 2 (eval '(if true 2 3) (make-env {}))))
     (is (= 3 (eval '(if false 2 3) (make-env {}))))
