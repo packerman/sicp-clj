@@ -8,7 +8,8 @@
 (def empty-environment (->Environment (atom {}) nil))
 
 (defn make-env
-  ([frame] (->Environment (atom frame) nil))
+  ([] (make-env {}))
+  ([frame] (make-env frame nil))
   ([frame enclosing] (->Environment (atom frame) enclosing)))
 
 (defn frame [env]
@@ -29,7 +30,14 @@
 (defn define-variable! [var val env]
   (swap! (:frame env) assoc var val))
 
-(defrecord Procedure [parameters body env])
+(defn extend-environment [variables values base-env]
+  (cond
+    (= (count variables) (count values)) (make-env (zipmap variables values)
+                                                   base-env)
+    (< (count variables) (count values)) (error "Too many arguments supplied " variables " " values)
+    :else (error "Too few arguments supplied " variables " " values)))
+
+(defrecord Procedure [parameters body environment])
 
 (defn eval [exp env]
   (letfn [(self-evaluating? [exp]
@@ -68,7 +76,7 @@
           (lambda? [exp]
             (tagged-list? exp 'lambda))
           (eval-lambda [exp env]
-            (let [[_ parameters body] exp]
+            (let [[_ parameters & body] exp]
               (->Procedure parameters body env)))
           (begin? [exp]
             (tagged-list? exp 'begin))
@@ -104,8 +112,17 @@
                 'false)))
           (application? [exp]
             (list? exp))
-          (apply [procedure arguments])
-          (list-of-values [exps env])
+          (apply [procedure arguments]
+            (eval-sequence
+              (:body procedure)
+              (extend-environment
+                (:parameters procedure)
+                arguments
+                (:environment procedure))))
+          (list-of-values [exps env]
+            (when (seq exps)
+              (cons (eval (first exps) env)
+                    (list-of-values (next exps) env))))
           ]
     (cond
       (self-evaluating? exp) exp
@@ -157,7 +174,7 @@
                (make-env '{x false y false z false})))))
   (testing "Lambda"
     (is (= (->Procedure '[x y]
-                        '(if x x y)
+                        '((if x x y))
                         '{x 3})
            (eval '(lambda [x y] (if x x y))
                  '{x 3}))))
@@ -168,10 +185,9 @@
                     (set! x 5)
                     x)
                  (make-env {})))))
-  #_(testing "Application"
-    (is (= (->Evaluated 2 {})
+  (testing "Application"
+    (is (= 2
            (eval '((lambda (x y z) (if x y z)) true 2 3)
-                 {})))
-    (is (= (->Evaluated 3 {})
-           (eval '((lambda (x y z) (if x y z)) false 2 3)
-                 {})))))
+                 (make-env {}))))
+    (is (= 3 (eval '((lambda (x y z) (if x y z)) false 2 3)
+                 (make-env {}))))))
