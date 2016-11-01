@@ -62,6 +62,29 @@
               (let [{new-env :environment} (eval (first exps) env)]
                 (recur (rest exps)
                        new-env))))
+          (sequence->exp [seq]
+            (cond
+              (empty? seq) seq
+              (not (next seq)) (first seq)
+              :else (cons 'begin seq)))
+          (cond? [exp]
+            (tagged-list? exp 'cond))
+          (cond->if [exp]
+            (expand-clauses (rest exp)))
+          (expand-clauses [clauses]
+            (letfn [(cond-test [clause]
+                      (first clause))
+                    (cond-actions [clause]
+                      (rest clause))]
+              (if-let [[first-clause & rest-clauses] (seq clauses)]
+                (if (= 'else (cond-test first-clause))
+                  (if (not rest-clauses)
+                    (sequence->exp (cond-actions first-clause))
+                    (error "ELSE clause isn't last: COND->IF" clauses))
+                  (list 'if (cond-test first-clause)
+                        (sequence->exp (cond-actions first-clause))
+                        (expand-clauses rest-clauses)))
+                'false)))
           ]
     (cond
       (self-evaluating? exp) (->Evaluated exp env)
@@ -72,6 +95,7 @@
       (if? exp) (eval-if exp env)
       (lambda? exp) (eval-lambda exp env)
       (begin? exp) (eval-sequence (rest exp) env)
+      (cond? exp) (eval (cond->if exp) env)
       :else (error "Unknown expression type: EVAL " exp))))
 
 (defmacro expression-is [expected tested]
@@ -87,9 +111,22 @@
     (is (= {'x 5} (:environment (eval '(set! x 5) {'x 3}))))
     (is (= {'x 5} (:environment (eval '(define x 5) {'x 3}))))
     (is (= {'x 5} (:environment (eval '(define x 5) {})))))
-  (testing "If expression"
+  (testing "If expression and cond"
     (is (= 2 (:expression (eval '(if true 2 3) {}))))
-    (is (= 3 (:expression (eval '(if false 2 3) {})))))
+    (is (= 3 (:expression (eval '(if false 2 3) {}))))
+    (is (= (->Evaluated 3 '{x false y 3 z 4})
+           (eval
+             '(cond (x x)
+                    (y y)
+                    (z z))
+             '{x false y 3 z 4})))
+    (is (= (->Evaluated 2 '{x false y false z false})
+           (eval
+             '(cond (x x)
+                    (y y)
+                    (z z)
+                    (else 2))
+             '{x false y false z false}))))
   (testing "Lambda"
     (is (= (->Procedure '[x y]
                         '(if x x y)
