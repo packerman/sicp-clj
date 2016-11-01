@@ -1,5 +1,5 @@
 (ns sicp-clj.metalinguistic.metacircular-evaluator
-  (:refer-clojure :exclude [eval true?])
+  (:refer-clojure :exclude [eval true?] :rename {apply clojure-apply})
   (:require [clojure.test :refer :all]
             [sicp-clj.core :refer :all]))
 
@@ -38,6 +38,8 @@
     :else (error "Too few arguments supplied " variables " " values)))
 
 (defrecord Procedure [parameters body environment])
+
+(defrecord Primitive [implementation])
 
 (defn eval [exp env]
   (letfn [(self-evaluating? [exp]
@@ -116,12 +118,15 @@
           (application? [exp]
             (list? exp))
           (apply [procedure arguments]
-            (eval-sequence
-              (:body procedure)
-              (extend-environment
-                (:parameters procedure)
-                arguments
-                (:environment procedure))))
+            (condp = (type procedure)
+              Primitive (clojure-apply (:implementation procedure)
+                                       arguments)
+              Procedure (eval-sequence
+                          (:body procedure)
+                          (extend-environment
+                            (:parameters procedure)
+                            arguments
+                            (:environment procedure)))))
           (list-of-values [exps env]
             (when (seq exps)
               (cons (eval (first exps) env)
@@ -196,4 +201,8 @@
            (eval '((lambda (x y z) (if x y z)) true 2 3)
                  (make-env {}))))
     (is (= 3 (eval '((lambda (x y z) (if x y z)) false 2 3)
-                 (make-env {}))))))
+                 (make-env {})))))
+  (testing "Primitive procedures"
+    (is (= 5 (eval '(+ 2 3)
+                   (make-env
+                     {'+ (->Primitive +)}))))))
