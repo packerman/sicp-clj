@@ -149,7 +149,26 @@
                                                       (expand-clauses rest-clauses)))
                                               'false)))]
                                   (expand-clauses (rest exp))))
-
+                        'and  (fn [exp]
+                                (letfn [(expand-and [exps]
+                                          (if-let [[first-exp & rest-exps] (seq exps)]
+                                            (if (not rest-exps)
+                                              (list 'if first-exp
+                                                    first-exp ;TODO - doble evaluation
+                                                    'false)
+                                              (list 'if first-exp
+                                                    (expand-and rest-exps)
+                                                    'false))
+                                            'true))]
+                                  (expand-and (rest exp))))
+                        'or (fn [exp]
+                              (letfn [(expand-or [exps]
+                                        (if-let [[first-exp & rest-exps] (seq exps)]
+                                          (list 'if first-exp
+                                                first-exp
+                                                (expand-or rest-exps))
+                                          'false))]
+                                (expand-or (rest exp))))
                         })
 
 (defn syntax-procedure? [proc]
@@ -213,4 +232,13 @@
   (testing "Primitive procedures"
     (is (= 5 (eval '(+ 2 3)
                    (make-env
-                     {'+ (->Primitive +)}))))))
+                     {'+ (->Primitive +)})))))
+  (testing "and, or"
+    (is (= 'true (eval '(and) (make-env))))
+    (is (= 3 (eval '(and 2 3) (make-env))))
+    (is (= 'false (eval '(and 3 false) (make-env))))
+    (is (= 'false (eval '(and false 3) (make-env))))
+    (is (= 'false (eval '(or) (make-env))))
+    (is (= 2 (eval '(or 2 3) (make-env))))
+    (is (= 2 (eval '(or false 2 3) (make-env))))
+    (is (= 'false (eval '(or false false false) (make-env))))))
