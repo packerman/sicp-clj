@@ -41,6 +41,14 @@
 
 (defrecord Primitive [implementation])
 
+(declare syntax-procedures syntax-procedure?)
+
+(defn sequence->exp [seq]
+  (cond
+    (empty? seq) seq
+    (not (next seq)) (first seq)
+    :else (cons 'begin seq)))
+
 (defn eval [exp env]
   (letfn [(self-evaluating? [exp]
             (or (number? exp)
@@ -92,29 +100,6 @@
                 (eval (first exps) env)
                 (recur (rest exps)
                        env))))
-          (sequence->exp [seq]
-            (cond
-              (empty? seq) seq
-              (not (next seq)) (first seq)
-              :else (cons 'begin seq)))
-          (cond? [exp]
-            (tagged-list? exp 'cond))
-          (cond->if [exp]
-            (expand-clauses (rest exp)))
-          (expand-clauses [clauses]
-            (letfn [(cond-test [clause]
-                      (first clause))
-                    (cond-actions [clause]
-                      (rest clause))]
-              (if-let [[first-clause & rest-clauses] (seq clauses)]
-                (if (= 'else (cond-test first-clause))
-                  (if (not rest-clauses)
-                    (sequence->exp (cond-actions first-clause))
-                    (error "ELSE clause isn't last: COND->IF" clauses))
-                  (list 'if (cond-test first-clause)
-                        (sequence->exp (cond-actions first-clause))
-                        (expand-clauses rest-clauses)))
-                'false)))
           (application? [exp]
             (list? exp))
           (apply [procedure arguments]
@@ -141,11 +126,34 @@
       (if? exp) (eval-if exp env)
       (lambda? exp) (eval-lambda exp env)
       (begin? exp) (eval-sequence (rest exp) env)
-      (cond? exp) (eval (cond->if exp) env)
-      (application? exp) (let [[operator  & operands] exp]
+      (syntax-procedure? (first exp)) (eval ((syntax-procedures (first exp)) exp) env)
+      (application? exp) (let [[operator & operands] exp]
                            (apply (eval operator env)
                                   (list-of-values operands env)))
       :else (error "Unknown expression type: EVAL " exp))))
+
+(def syntax-procedures {
+                        'cond (fn [exp]
+                                (letfn [(expand-clauses [clauses]
+                                          (letfn [(cond-test [clause]
+                                                    (first clause))
+                                                  (cond-actions [clause]
+                                                    (rest clause))]
+                                            (if-let [[first-clause & rest-clauses] (seq clauses)]
+                                              (if (= 'else (cond-test first-clause))
+                                                (if (not rest-clauses)
+                                                  (sequence->exp (cond-actions first-clause))
+                                                  (error "ELSE clause isn't last: COND->IF" clauses))
+                                                (list 'if (cond-test first-clause)
+                                                      (sequence->exp (cond-actions first-clause))
+                                                      (expand-clauses rest-clauses)))
+                                              'false)))]
+                                  (expand-clauses (rest exp))))
+
+                        })
+
+(defn syntax-procedure? [proc]
+  (contains? syntax-procedures proc))
 
 (defmacro expression-is [expected tested]
   `(is (= ~expected (:expression ~tested))))
@@ -201,7 +209,7 @@
            (eval '((lambda (x y z) (if x y z)) true 2 3)
                  (make-env {}))))
     (is (= 3 (eval '((lambda (x y z) (if x y z)) false 2 3)
-                 (make-env {})))))
+                   (make-env {})))))
   (testing "Primitive procedures"
     (is (= 5 (eval '(+ 2 3)
                    (make-env
