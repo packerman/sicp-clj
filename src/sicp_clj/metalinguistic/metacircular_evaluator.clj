@@ -57,7 +57,8 @@
           (variable? [exp]
             (symbol? exp))
           (tagged-list? [exp tag]
-            (and (list? exp) (= tag (first exp))))
+            (and (seq? exp)
+                 (= tag (first exp))))
           (quoted? [exp]
             (tagged-list? exp 'quote))
           (text-of-quotation [[_ text]] text)
@@ -101,7 +102,7 @@
                 (recur (rest exps)
                        env))))
           (application? [exp]
-            (list? exp))
+            (or (list? exp)))
           (apply [procedure arguments]
             (condp = (type procedure)
               Primitive (clojure-apply (:implementation procedure)
@@ -140,13 +141,17 @@
                                                   (cond-actions [clause]
                                                     (rest clause))]
                                             (if-let [[first-clause & rest-clauses] (seq clauses)]
-                                              (if (= 'else (cond-test first-clause))
-                                                (if (not rest-clauses)
-                                                  (sequence->exp (cond-actions first-clause))
-                                                  (error "ELSE clause isn't last: COND->IF" clauses))
-                                                (list 'if (cond-test first-clause)
-                                                      (sequence->exp (cond-actions first-clause))
-                                                      (expand-clauses rest-clauses)))
+                                              (cond
+                                                (= 'else (cond-test first-clause)) (if (not rest-clauses)
+                                                                                     (sequence->exp (cond-actions first-clause))
+                                                                                     (error "ELSE clause isn't last: COND->IF" clauses))
+                                                (= '=> (fnext first-clause)) (list 'if (cond-test first-clause)
+                                                                                   (list (first (nnext first-clause)) (cond-test first-clause)) ;TODO - test evaluated two times!
+                                                                                   (expand-clauses rest-clauses))
+                                                :else (list 'if (cond-test first-clause)
+                                                            (sequence->exp (cond-actions first-clause))
+                                                            (expand-clauses rest-clauses))
+                                                )
                                               'false)))]
                                   (expand-clauses (rest exp))))
                         'and  (fn [exp]
@@ -154,21 +159,28 @@
                                           (if-let [[first-exp & rest-exps] (seq exps)]
                                             (if (not rest-exps)
                                               (list 'if first-exp
-                                                    first-exp ;TODO - doble evaluation
+                                                    first-exp ;TODO - double evaluation
                                                     'false)
                                               (list 'if first-exp
                                                     (expand-and rest-exps)
                                                     'false))
                                             'true))]
                                   (expand-and (rest exp))))
-                        'or (fn [exp]
-                              (letfn [(expand-or [exps]
-                                        (if-let [[first-exp & rest-exps] (seq exps)]
-                                          (list 'if first-exp
-                                                first-exp
-                                                (expand-or rest-exps))
-                                          'false))]
-                                (expand-or (rest exp))))
+                        'or   (fn [exp]
+                                (letfn [(expand-or [exps]
+                                          (if-let [[first-exp & rest-exps] (seq exps)]
+                                            (list 'if first-exp
+                                                  first-exp
+                                                  (expand-or rest-exps))
+                                            'false))]
+                                  (expand-or (rest exp))))
+                        'let  (fn [exp]
+                                (let [[_ bindings & body] exp
+                                      vars (map first bindings)
+                                      exps (map second bindings)]
+                                  (list*
+                                    (list* 'lambda vars body)
+                                    exps)))
                         })
 
 (defn syntax-procedure? [proc]
@@ -209,7 +221,12 @@
                       (y y)
                       (z z)
                       (else 2))
-               (make-env '{x false y false z false})))))
+               (make-env '{x false y false z false}))))
+    (is (= 3 (eval
+               '(cond ((+ y 1) => (lambda (x) (+ x 1))))
+               (make-env
+                 {'y 1
+                  '+ (->Primitive +)})))))
   (testing "Lambda"
     (is (= (->Procedure '[x y]
                         '((if x x y))
@@ -241,4 +258,10 @@
     (is (= 'false (eval '(or) (make-env))))
     (is (= 2 (eval '(or 2 3) (make-env))))
     (is (= 2 (eval '(or false 2 3) (make-env))))
-    (is (= 'false (eval '(or false false false) (make-env))))))
+    (is (= 'false (eval '(or false false false) (make-env)))))
+  (testing "Let expressions"
+    (is (= 5 (eval
+               '(let ((x 2) (y 3))
+                  (+ x y))
+               (make-env
+                 {'+ (->Primitive +)}))))))
