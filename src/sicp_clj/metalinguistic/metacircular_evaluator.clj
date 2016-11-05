@@ -102,7 +102,7 @@
                 (recur (rest exps)
                        env))))
           (application? [exp]
-            (or (list? exp)))
+            (seq? exp))
           (apply [procedure arguments]
             (condp = (type procedure)
               Primitive (clojure-apply (:implementation procedure)
@@ -131,7 +131,7 @@
       (application? exp) (let [[operator & operands] exp]
                            (apply (eval operator env)
                                   (list-of-values operands env)))
-      :else (error "Unknown expression type: EVAL " exp))))
+      :else (error "Unknown expression type: EVAL " exp " " (type exp)))))
 
 (def syntax-procedures {
                         'cond (fn [exp]
@@ -181,6 +181,16 @@
                                   (list*
                                     (list* 'lambda vars body)
                                     exps)))
+                        'let* (fn [exp]
+                                (letfn [(expand-lets [bindings body]
+                                          (if-let [[first-binding & rest-bindings] (seq bindings)]
+                                            (if (not rest-bindings)
+                                              (list* 'let (list first-binding) body)
+                                              (list 'let (list first-binding)
+                                                    (expand-lets rest-bindings body)))
+                                            (list* 'let '() body)))]
+                                  (let [[_ bindings & body] exp]
+                                    (expand-lets bindings body))))
                         })
 
 (defn syntax-procedure? [proc]
@@ -264,4 +274,12 @@
                '(let ((x 2) (y 3))
                   (+ x y))
                (make-env
-                 {'+ (->Primitive +)}))))))
+                 {'+ (->Primitive +)}))))
+    (is (= 39 (eval
+               '(let* ((x 3)
+                        (y (+ x 2))
+                        (z (+ x y 5)))
+                  (* x z))
+               (make-env
+                 {'+ (->Primitive +)
+                  '* (->Primitive *)}))))))
