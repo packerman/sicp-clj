@@ -206,6 +206,21 @@
 (defn syntax-procedure? [proc]
   (contains? syntax-procedures proc))
 
+(defn setup-environment []
+  (let [initial-env (make-env {
+                               'car (->Primitive first)
+                               'cdr (->Primitive next)
+                               'cons (->Primitive cons)
+                               'null? (->Primitive nil?)
+                               '+ (->Primitive +')
+                               '- (->Primitive -')
+                               '* (->Primitive *')
+                               '= (->Primitive =)
+                               })]
+    (define-variable! 'true true initial-env)
+    (define-variable! 'false false initial-env)
+    initial-env))
+
 (defmacro expression-is [expected tested]
   `(is (= ~expected (:expression ~tested))))
 
@@ -309,4 +324,13 @@
                 (make-env
                   {'+ (->Primitive +)
                    '- (->Primitive -)
-                   '= (->Primitive =)}))))))
+                   '= (->Primitive =)})))))
+  (testing "Example programs"
+    (is (= '(a b c d e f)
+           (eval '(begin
+                    (define (append x y)
+                            (if (null? x)
+                              y
+                              (cons (car x) (append (cdr x) y))))
+                    (append '(a b c) '(d e f)))
+                 (setup-environment))))))
