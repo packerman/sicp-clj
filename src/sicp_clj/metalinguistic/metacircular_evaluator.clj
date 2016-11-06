@@ -74,7 +74,7 @@
               (if (symbol? var)
                 (define-variable! var (eval (first body) env) env)
                 (let [[var & parameters] var]
-                  (define-variable! var (list* 'lambda parameters body) env)))))
+                  (define-variable! var (->Procedure parameters body env) env)))))
           (if? [exp]
             (tagged-list? exp 'if))
           (boolean? [exp] (contains? #{'true 'false} exp))
@@ -112,7 +112,8 @@
                           (extend-environment
                             (:parameters procedure)
                             arguments
-                            (:environment procedure)))))
+                            (:environment procedure)))
+              (error "Unknown procedure type: " procedure)))
           (list-of-values [exps env]
             (when (seq exps)
               (cons (eval (first exps) env)
@@ -175,12 +176,21 @@
                                             'false))]
                                   (expand-or (rest exp))))
                         'let  (fn [exp]
-                                (let [[_ bindings & body] exp
-                                      vars (map first bindings)
-                                      exps (map second bindings)]
-                                  (list*
-                                    (list* 'lambda vars body)
-                                    exps)))
+                                (if-not (symbol? (fnext exp))
+                                  (let [[_ bindings & body] exp
+                                        vars (map first bindings)
+                                        exps (map second bindings)]
+                                    (list*
+                                      (list* 'lambda vars body)
+                                      exps))
+                                  (let [[_ var bindings & body] exp
+                                        vars (map first bindings)
+                                        params (map second bindings)]
+                                    (list 'let '()
+                                          (list* 'define (list* var vars) body)
+                                          (list*
+                                            var
+                                            params)))))
                         'let* (fn [exp]
                                 (letfn [(expand-lets [bindings body]
                                           (if-let [[first-binding & rest-bindings] (seq bindings)]
@@ -215,9 +225,12 @@
     (let [env (make-env {})]
       (eval '(define x 5) env)
       (is (= '{x 5} (frame env))))
-    (let [env (make-env)]
-      (eval '(define (f x) (x x)) env)
-      (is (= '{f (lambda (x) (x x))} (frame env)))))
+    (is (= 25 (eval '(begin
+                       (define (square x) (* x x))
+                       (square 5))
+                    (make-env {
+                               '* (->Primitive *')
+                               })))))
   (testing "If expression and cond"
     (is (= 2 (eval '(if true 2 3) (make-env {}))))
     (is (= 3 (eval '(if false 2 3) (make-env {}))))
@@ -276,10 +289,24 @@
                (make-env
                  {'+ (->Primitive +)}))))
     (is (= 39 (eval
-               '(let* ((x 3)
-                        (y (+ x 2))
-                        (z (+ x y 5)))
-                  (* x z))
-               (make-env
-                 {'+ (->Primitive +)
-                  '* (->Primitive *)}))))))
+                '(let* ((x 3)
+                         (y (+ x 2))
+                         (z (+ x y 5)))
+                   (* x z))
+                (make-env
+                  {'+ (->Primitive +)
+                   '* (->Primitive *)}))))
+    (is (= 55 (eval
+                '(begin
+                   (define (fib n)
+                           (let fib-iter ((a 1) (b 0) (count n))
+                                         (if (= count 0)
+                                           b
+                                           (fib-iter (+ a b)
+                                                     a
+                                                     (- count 1)))))
+                   (fib 10))
+                (make-env
+                  {'+ (->Primitive +)
+                   '- (->Primitive -)
+                   '= (->Primitive =)}))))))
