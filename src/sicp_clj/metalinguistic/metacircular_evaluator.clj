@@ -363,4 +363,14 @@
                               y
                               (cons (car x) (append (cdr x) y))))
                     (append '(a b c) '(d e f)))
-                 (setup-environment))))))
+                 (setup-environment))))
+    (is (= '(1 4 9 16 25)
+           (eval
+             '(begin
+                (define (map f list)
+                        (if (null? list)
+                          '()
+                          (cons (f (car list)) (map f (cdr list)))))
+                (define (square x) (* x x))
+                (map square '(1 2 3 4 5)))
+             (setup-environment))))))
