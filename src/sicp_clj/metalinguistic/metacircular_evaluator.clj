@@ -24,11 +24,14 @@
 (defn set-variable-value! [var val env]
   (cond
     (nil? env) (error "Unbound variable: SET! " var)
-    (contains? @(:frame env) var) (swap! (:frame env) assoc var val)
+    (contains? @(:frame env) var) (do
+                                    (swap! (:frame env) assoc var val)
+                                    'ok)
     :else (recur var val (:enclosing env))))
 
 (defn define-variable! [var val env]
-  (swap! (:frame env) assoc var val))
+  (swap! (:frame env) assoc var val)
+  'ok)
 
 (defn extend-environment [variables values base-env]
   (cond
@@ -221,8 +224,35 @@
     (define-variable! 'false false initial-env)
     initial-env))
 
-(defmacro expression-is [expected tested]
-  `(is (= ~expected (:expression ~tested))))
+(def the-global-environment (setup-environment))
+
+(def input-prompt  ";;; M-Eval input:")
+(def output-prompt ";;; M-Eval value:")
+
+(defn prompt-for-input [string]
+  (newline) (newline)
+  (print string) (newline)
+  (flush))
+
+(defn announce-output [string]
+  (newline) (print string) (newline)
+  (flush))
+
+(defn user-print [object]
+  (if (= Procedure (type object))
+    (print (->Procedure (:parameters object)
+                        (:body object)
+                        '<procedure-env>))
+    (print object)))
+
+(defn driver-loop []
+  (prompt-for-input input-prompt)
+  (let [input (read)
+        output (eval input
+                     the-global-environment)]
+    (announce-output output-prompt)
+    (user-print output))
+  (recur))
 
 (deftest evaluator-test
   (testing "Self-evaluating expressions"
